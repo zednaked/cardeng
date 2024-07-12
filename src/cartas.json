@@ -1,0 +1,413 @@
+[
+  {
+    "id": 1,
+    "nome": "Goblin",
+    "tipo": "Inimigo",
+    "descricao": "Criatura verde e pequena, fraca mas ágil.",
+    "ataque": 1,
+    "defesa": 0,
+    "vida": 3,
+    "valor": 5
+  },
+  {
+    "id": 2,
+    "nome": "Esqueleto",
+    "tipo": "Inimigo",
+    "descricao": "Ossos animados por magia negra, resistente, mas lento.",
+    "ataque": 2,
+    "defesa": 1,
+    "vida": 5,
+    "valor": 8
+  },
+  {
+    "id": 3,
+    "nome": "Aranha",
+    "tipo": "Inimigo",
+    "descricao": "Criatura de oito patas, venenosa e com alta defesa.",
+    "ataque": 2,
+    "defesa": 2,
+    "vida": 6,
+    "valor": 10
+  },
+  {
+    "id": 4,
+    "nome": "Orc",
+    "tipo": "Inimigo",
+    "descricao": "Brutamontes musculoso com ataques poderosos.",
+    "ataque": 3,
+    "defesa": 1,
+    "vida": 8,
+    "valor": 12
+  },
+  {
+    "id": 5,
+    "nome": "Lobo",
+    "tipo": "Inimigo",
+    "descricao": "Fera selvagem e ágil, com ataques rápidos.",
+    "ataque": 3,
+    "defesa": 0,
+    "vida": 7,
+    "valor": 15
+  },
+  {
+    "id": 6,
+    "nome": "Morcego",
+    "tipo": "Inimigo",
+    "descricao": "Criatura voadora noturna, difícil de acertar.",
+    "ataque": 2,
+    "defesa": 3,
+    "vida": 4,
+    "valor": 10
+  },
+  {
+    "id": 7,
+    "nome": "Slime",
+    "tipo": "Inimigo",
+    "descricao": "Monstro gelatinoso, absorve muitos golpes.",
+    "ataque": 1,
+    "defesa": 4,
+    "vida": 10,
+    "valor": 12
+  },
+  {
+    "id": 8,
+    "nome": "Escorpião",
+    "tipo": "Inimigo",
+    "descricao": "Criatura venenosa com ataque surpresa.",
+    "ataque": 4,
+    "defesa": 0,
+    "vida": 6,
+    "valor": 15
+  },
+  {
+    "id": 9,
+    "nome": "Golem",
+    "tipo": "Inimigo",
+    "descricao": "Criatura de pedra, lenta, mas resistente.",
+    "ataque": 0,
+    "defesa": 5,
+    "vida": 15,
+    "valor": 20
+  },
+  {
+    "id": 10,
+    "nome": "Troll",
+    "tipo": "Inimigo",
+    "descricao": "Gigante com capacidade de regeneração.",
+    "ataque": 4,
+    "defesa": 2,
+    "vida": 12,
+    "valor": 25
+  },
+  {
+    "id": 11,
+    "nome": "Harpia",
+    "tipo": "Inimigo",
+    "descricao": "Mulher-pássaro com ataques aéreos.",
+    "ataque": 3,
+    "defesa": 3,
+    "vida": 8,
+    "valor": 18
+  },
+  {
+    "id": 12,
+    "nome": "Ciclope",
+    "tipo": "Inimigo",
+    "descricao": "Gigante de um olho só com força bruta.",
+    "ataque": 5,
+    "defesa": 1,
+    "vida": 15,
+    "valor": 30
+  },
+  {
+    "id": 13,
+    "nome": "Minotauro",
+    "tipo": "Inimigo",
+    "descricao": "Monstro com cabeça de touro e força descomunal.",
+    "ataque": 4,
+    "defesa": 3,
+    "vida": 10,
+    "valor": 22
+  },
+  {
+    "id": 14,
+    "nome": "Hidra",
+    "tipo": "Inimigo",
+    "descricao": "Serpente com múltiplas cabeças, difícil de derrotar.",
+    "ataque": 6,
+    "defesa": 2,
+    "vida": 18,
+    "valor": 35
+  },
+  {
+    "id": 15,
+    "nome": "Dragão",
+    "tipo": "Inimigo",
+    "descricao": "Criatura lendária, poderosa e temível.",
+    "ataque": 8,
+    "defesa": 4,
+    "vida": 25,
+    "valor": 60
+  },
+  {
+    "id": 16,
+    "nome": "Espírito",
+    "tipo": "Inimigo",
+    "descricao": "Espectro incorpóreo com ataques mágicos.",
+    "ataque": 2,
+    "defesa": 0,
+    "vida": 10,
+    "valor": 15
+  },
+  {
+    "id": 17,
+    "nome": "Demônio",
+    "tipo": "Inimigo",
+    "descricao": "Criatura infernal com poderes obscuros.",
+    "ataque": 7,
+    "defesa": 2,
+    "vida": 20,
+    "valor": 40
+  },
+  {
+    "id": 18,
+    "nome": "Vampiro",
+    "tipo": "Inimigo",
+    "descricao": "Ser sugador de sangue com regeneração.",
+    "ataque": 5,
+    "defesa": 3,
+    "vida": 15,
+    "valor": 30
+  },
+  {
+    "id": 19,
+    "nome": "Lobisomem",
+    "tipo": "Inimigo",
+    "descricao": "Humano que se transforma em lobo em noites de lua cheia.",
+    "ataque": 6,
+    "defesa": 1,
+    "vida": 12,
+    "valor": 25
+  },
+  {
+    "id": 20,
+    "nome": "Bruxa",
+    "tipo": "Inimigo",
+    "descricao": "Feiticeira poderosa com ataques mágicos variados.",
+    "ataque": 3,
+    "defesa": 4,
+    "vida": 10,
+    "valor": 20
+  },
+  {
+    "id": 21,
+    "nome": "Moeda",
+    "tipo": "Item",
+    "descricao": "Vale 1 unidade de ouro.",
+    "valor": 1
+  },
+  {
+    "id": 22,
+    "nome": "Moeda",
+    "tipo": "Item",
+    "descricao": "Vale 1 unidade de ouro.",
+    "valor": 1
+  },
+  {
+    "id": 23,
+    "nome": "Moeda",
+    "tipo": "Item",
+    "descricao": "Vale 1 unidade de ouro.",
+    "valor": 1
+  },
+  {
+    "id": 24,
+    "nome": "Moeda",
+    "tipo": "Item",
+    "descricao": "Vale 1 unidade de ouro.",
+    "valor": 1
+  },
+  {
+    "id": 25,
+    "nome": "Moeda",
+    "tipo": "Item",
+    "descricao": "Vale 1 unidade de ouro.",
+    "valor": 1
+  },
+  {
+    "id": 26,
+    "nome": "Pepita",
+    "tipo": "Item",
+    "descricao": "Vale 5 unidades de ouro.",
+    "valor": 5
+  },
+  {
+    "id": 27,
+    "nome": "Pepita",
+    "tipo": "Item",
+    "descricao": "Vale 5 unidades de ouro.",
+    "valor": 5
+  },
+  {
+    "id": 28,
+    "nome": "Pepita",
+    "tipo": "Item",
+    "descricao": "Vale 5 unidades de ouro.",
+    "valor": 5
+  },
+  {
+    "id": 29,
+    "nome": "Saco",
+    "tipo": "Item",
+    "descricao": "Vale 10 unidades de ouro.",
+    "valor": 10
+  },
+  {
+    "id": 30,
+    "nome": "Saco",
+    "tipo": "Item",
+    "descricao": "Vale 10 unidades de ouro.",
+    "valor": 10
+  },
+  {
+    "id": 31,
+    "nome": "Baú",
+    "tipo": "Item",
+    "descricao": "Vale 20 unidades de ouro.",
+    "valor": 20
+  },
+  {
+    "id": 32,
+    "nome": "Baú",
+    "tipo": "Item",
+    "descricao": "Vale 20 unidades de ouro.",
+    "valor": 20
+  },
+  {
+    "id": 33,
+    "nome": "Joia",
+    "tipo": "Item",
+    "descricao": "Vale 50 unidades de ouro.",
+    "valor": 50
+  },
+  {
+    "id": 34,
+    "nome": "Relíquia",
+    "tipo": "Item",
+    "descricao": "Vale 100 unidades de ouro.",
+    "valor": 100
+  },
+  {
+    "id": 35,
+    "nome": "Tesouro",
+    "tipo": "Item",
+    "descricao": "Vale 200 unidades de ouro.",
+    "valor": 200
+  },
+  {
+    "id": 36,
+    "nome": "Espada",
+    "tipo": "Equipamento",
+    "descricao": "Lâmina afiada que aumenta o ataque em 2.",
+    "bonus_ataque": 2
+  },
+  {
+    "id": 37,
+    "nome": "Espada",
+    "tipo": "Equipamento",
+    "descricao": "Lâmina afiada que aumenta o ataque em 2.",
+    "bonus_ataque": 2
+  },
+  {
+    "id": 38,
+    "nome": "Machado",
+    "tipo": "Equipamento",
+    "descricao": "Machado poderoso que aumenta o ataque em 3.",
+    "bonus_ataque": 3
+  },
+  {
+    "id": 39,
+    "nome": "Arco",
+    "tipo": "Equipamento",
+    "descricao": "Arco preciso que aumenta o ataque em 2.",
+    "bonus_ataque": 2
+  },
+  {
+    "id": 40,
+    "nome": "Escudo",
+    "tipo": "Equipamento",
+    "descricao": "Escudo resistente que aumenta a defesa em 2.",
+    "bonus_defesa": 2
+  },
+  {
+    "id": 41,
+    "nome": "Escudo",
+    "tipo": "Equipamento",
+    "descricao": "Escudo resistente que aumenta a defesa em 2.",
+    "bonus_defesa": 2
+  },
+  {
+    "id": 42,
+    "nome": "Armadura",
+    "tipo": "Equipamento",
+    "descricao": "Armadura completa que aumenta a defesa em 3.",
+    "bonus_defesa": 3
+  },
+  {
+    "id": 43,
+    "nome": "Capacete",
+    "tipo": "Equipamento",
+    "descricao": "Capacete que protege a cabeça e aumenta a defesa em 1.",
+    "bonus_defesa": 1
+  },
+  {
+    "id": 44,
+    "nome": "Botas",
+    "tipo": "Equipamento",
+    "descricao": "Botas resistentes que aumentam a defesa em 1.",
+    "bonus_defesa": 1
+  },
+  {
+    "id": 45,
+    "nome": "Luvas",
+    "tipo": "Equipamento",
+    "descricao": "Luvas reforçadas que aumentam a defesa em 1.",
+    "bonus_defesa": 1
+  },
+  {
+    "id": 46,
+    "nome": "Anel",
+    "tipo": "Artefato",
+    "descricao": "Anel mágico que aumenta a vida máxima em 5.",
+    "bonus_vida": 5
+  },
+  {
+    "id": 47,
+    "nome": "Amuleto",
+    "tipo": "Artefato",
+    "descricao": "Amuleto que aumenta o ataque e a defesa em 1.",
+    "bonus_ataque": 1,
+    "bonus_defesa": 1
+  },
+  {
+    "id": 48,
+    "nome": "Colar",
+    "tipo": "Artefato",
+    "descricao": "Colar encantado que recupera 2 de vida a cada turno.",
+    "cura": 2
+  },
+  {
+    "id": 49,
+    "nome": "Poção",
+    "tipo": "Artefato",
+    "descricao": "Poção mágica que duplica o próximo ataque.",
+    "bonus_ataque_proximo": 2
+  },
+  {
+    "id": 50,
+    "nome": "Pergaminho",
+    "tipo": "Artefato",
+    "descricao": "Pergaminho que anula o próximo ataque inimigo.",
+    "anula_ataque": true
+  }
+]

@@ -303,8 +303,6 @@ impl Deck {
                 Vec::new() // Em caso de erro, inicializa com um vetor vazio
             }
         };
-
-        // ... (resto do seu código de inicialização) ...
     }
 }
 
@@ -497,7 +495,7 @@ fn fim_dragging(
                     transform_carta.translation.y = ancora_carta.y;
                     return;
                 }
-                if jogador.jogador.posicao == 2 && slot.posicao == 2 {
+                if jogador.jogador.posicao == 2 && slot.posicao == 0 {
                     ew_envia_status.send(e_envia_status(
                         "Voce nao pode interagir com esse slot".to_string(),
                     ));
@@ -523,6 +521,8 @@ fn fim_dragging(
 
                 let slot_img = asset_server.load("cemiterio.png");
                 deck.level += 1;
+
+                jogador.jogador.posicao = slot.posicao;
 
                 for i in 1..4 {
                     // let mut slot = Slot::default();
@@ -590,7 +590,6 @@ fn fim_dragging(
                 info!("{:?}", deck.level);
                 ancora_carta.x = transform_slot.translation.x;
                 ancora_carta.y = transform_slot.translation.y;
-                jogador.jogador.posicao = slot.posicao;
                 jogador.deck = deck.clone();
                 commands.entity(entity_slot).insert(slot.clone());
             }

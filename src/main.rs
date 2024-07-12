@@ -355,13 +355,14 @@ fn atualiza_slot(
         //let carta = deck.get_primeira_carta();
         let carta = slot.carta.clone();
 
-        let cor: Color = if carta.ataque.unwrap_or_default() > 0 {
-            Srgba::new(1.0, 0.5, 0.5, 1.0).into()
-        } else if carta.defesa.unwrap_or_default() > 0 {
-            Srgba::new(0.5, 1.0, 0.5, 1.0).into()
-        } else {
-            Srgba::new(1.0, 1.0, 1.0, 1.0).into()
+        let cor: Color = match carta.tipo {
+            TipoCarta::Inimigo => Srgba::new(1.0, 0.5, 0.5, 1.0).into(),
+            TipoCarta::Vida => Srgba::new(0.5, 1.0, 0.5, 1.0).into(),
+            TipoCarta::Equipamento => Srgba::new(0.5, 0.5, 1.0, 1.0).into(),
+            TipoCarta::Artefato => Srgba::new(1.0, 1.0, 0.5, 1.0).into(),
+            TipoCarta::Item => Srgba::new(0.5, 0.5, 0.5, 1.0).into(),
         };
+
         let carta_img: Handle<Image> = asset_server.load("carta.png");
         let carta_id = commands
             .spawn((
@@ -483,10 +484,6 @@ fn fim_dragging(
                     transform_carta.translation.y = ancora_carta.y;
                     return;
                 }
-                info!(
-                    "posicao do jogador: {} posicao do slot: {}",
-                    jogador.jogador.posicao, slot.posicao
-                );
                 if jogador.jogador.posicao == 0 && slot.posicao == 2 {
                     ew_envia_status.send(e_envia_status(
                         "Voce nao pode interagir com esse slot".to_string(),
@@ -503,13 +500,16 @@ fn fim_dragging(
                     transform_carta.translation.y = ancora_carta.y;
                     return;
                 }
+
+                //desespawna a carta de baixo
                 for (entity_carta, carta) in query_cartas.iter() {
                     if carta.id == slot.carta.id {
-                        info!("{:?}", carta);
-
                         //     commands.entity(entity_carta).despawn_recursive();
                         if entity_carta != entity {
                             commands.entity(entity_carta).despawn_recursive();
+                            //ao inves de desespawnar a carta, a carta perde o componente carta e fica
+                            //do lado esquerdo da tela para representar que ela foi aduerida pelo jogador
+                            //se for um inimigo fica ao lado do deck, no que seria um cemitario
                         }
                     }
                 }
@@ -521,14 +521,63 @@ fn fim_dragging(
 
                 let slot_img = asset_server.load("cemiterio.png");
                 deck.level += 1;
-
+                //muda a posicao do jogador no eixo horizontal
                 jogador.jogador.posicao = slot.posicao;
 
-                for i in 1..4 {
-                    // let mut slot = Slot::default();
-                    //slot.adc_carta(deck.clone());
+                match slot.carta.tipo {
+                    TipoCarta::Inimigo => {
+                        ew_envia_status
+                            .send(e_envia_status("Voce encontrou um inimigo".to_string()));
+                        jogador.jogador.xp += slot.carta.ataque.unwrap_or_default();
+                        ew_atualiza_jogador.send(e_atualiza_jogador {
+                            tipo: TipoAtualizacao::tomar_dano,
+                            valor: 1,
+                        });
+                    }
+                    TipoCarta::Vida => {
+                        ew_envia_status.send(e_envia_status("Voce encontrou um item".to_string()));
+                        jogador.jogador.vida_atual += 1;
+                    }
+                    TipoCarta::Equipamento => {
+                        ew_envia_status
+                            .send(e_envia_status("Voce encontrou um equipamento".to_string()));
+                        //verifica o bonus do equipamento e adiciona ao jogador
+                        if let Some(bonus_ataque) = slot.carta.bonus_ataque {
+                            jogador.jogador.ataque += bonus_ataque;
+                        }
+                        if let Some(bonus_defesa) = slot.carta.bonus_defesa {
+                            jogador.jogador.defesa += bonus_defesa;
+                        }
+                        if let Some(bonus_vida) = slot.carta.bonus_vida {
+                            jogador.jogador.vida_atual += bonus_vida;
+                        }
+                    }
+                    TipoCarta::Artefato => {
+                        ew_envia_status
+                            .send(e_envia_status("Voce encontrou um artefato".to_string()));
+                        //artefatos acrescentam um bonus ao jogador
 
-                    // slot.carta = deck.cartas.pop().unwrap();
+                        if let Some(bonus_ataque) = slot.carta.bonus_ataque {
+                            jogador.jogador.ataque += bonus_ataque;
+                        }
+                        if let Some(bonus_defesa) = slot.carta.bonus_defesa {
+                            jogador.jogador.defesa += bonus_defesa;
+                        }
+                        if let Some(bonus_vida) = slot.carta.bonus_vida {
+                            jogador.jogador.vida_atual += bonus_vida;
+                        }
+                    }
+                    TipoCarta::Item => {
+                        ew_envia_status.send(e_envia_status("Voce encontrou um item".to_string()));
+                        // adiciona dinheiro ao jogador
+                        if let Some(valor) = slot.carta.valor {
+                            jogador.jogador.ouro += valor;
+                        }
+                    }
+                }
+
+                //cria mais 3 slots
+                for i in 1..4 {
                     slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
                         id: 0,
                         nome: "Carta Vazia".to_string(),
@@ -569,32 +618,13 @@ fn fim_dragging(
                     ));
                 }
 
-                //TODO: arrumar essa parte daqui pra baixo
-                if slot.carta.ataque.unwrap_or_default() > 0 {
-                    ew_envia_status.send(e_envia_status("Voce matou um inimigo".to_string()));
-                    ew_atualiza_jogador.send(e_atualiza_jogador {
-                        tipo: TipoAtualizacao::tomar_dano,
-                        valor: 1,
-                    });
-
-                    //nfo!("vc matou o inimigo");
-                    //desespawna a carta e muda a carta do slot para a que foi solta
-                }
-                if slot.carta.defesa.unwrap_or_default() > 0 {
-                    ew_envia_status.send(e_envia_status("Voce recebeu ouro".to_string()));
-                }
-
-                if slot.carta.vida.unwrap_or_default() > 0 {
-                    ew_envia_status.send(e_envia_status("Voce recebeu um item".to_string()));
-                }
-                info!("{:?}", deck.level);
                 ancora_carta.x = transform_slot.translation.x;
                 ancora_carta.y = transform_slot.translation.y;
                 jogador.deck = deck.clone();
                 commands.entity(entity_slot).insert(slot.clone());
             }
         }
-        jogador.jogador.level += 1;
+        //        jogador.jogador.level += 1;
         //manda a carta pra ancora dela
         transform_carta.translation.x = ancora_carta.x;
         transform_carta.translation.y = ancora_carta.y;
@@ -604,6 +634,10 @@ fn fim_dragging(
         }
 
         ew_atualiza_slot.send(e_atualiza_slot);
+        ew_atualiza_jogador.send(e_atualiza_jogador {
+            tipo: TipoAtualizacao::sobe_level,
+            valor: 1,
+        });
     }
 }
 

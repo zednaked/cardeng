@@ -195,6 +195,9 @@ struct Carta {
     vida: i32,
 }*/
 
+#[derive(Debug, Component, Clone)]
+struct EntidadeCarta(Entity);
+
 #[derive(Component, Clone, Serialize, Deserialize, Debug)]
 struct Carta {
     id: u32,
@@ -212,7 +215,7 @@ struct Carta {
     valor: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 enum TipoCarta {
     Inimigo,
     Vida,
@@ -303,22 +306,117 @@ impl Deck {
             if cartas_inimigo.len() > 0 {
                 cartas.push(cartas_inimigo.pop().unwrap_or_default());
             }
-            if cartas_vida.len() > 0 {
-                cartas.push(cartas_vida.pop().unwrap_or_default());
-            }
-            if cartas_equipamento.len() > 0 {
+
+            //            if cartas_inimigo.len() > 0 {
+            //              cartas.push(cartas_inimigo.pop().unwrap_or_default());
+            //        }
+            //      if cartas_vida.len() > 0 {
+            //        cartas.push(cartas_vida.pop().unwrap_or_default());
+            //  }
+            //acrescenta uma chance de 1/2 de aparecer um equipamento
+            if (i % 3 == 0) && cartas_equipamento.len() > 0 {
                 cartas.push(cartas_equipamento.pop().unwrap_or_default());
             }
-            if cartas_artefato.len() > 0 {
+            if (i % 4 == 0) && cartas_artefato.len() > 0 {
+                //acrescenta uma chance de 1/3 de aparecer um artefato
                 cartas.push(cartas_artefato.pop().unwrap_or_default());
             }
-            if cartas_item.len() > 0 {
+            if (i % 2 == 0) && cartas_item.len() > 0 {
+                //acrescenta uma chance de 1/3 de aparecer um item
                 cartas.push(cartas_item.pop().unwrap_or_default());
             }
 
             i += 5;
         }
         cartas.shuffle(&mut rng);
+        cartas.insert(
+            0,
+            Carta {
+                id: 73373,
+                nome: "Escadas".to_string(),
+                descricao: "O deck está vazio!".to_string(),
+                ataque: Some(0),
+                defesa: Some(0),
+                vida: Some(0),
+                cura: Some(0),
+                bonus_ataque: Some(0),
+                bonus_defesa: Some(0),
+                bonus_vida: Some(0),
+                tipo: TipoCarta::Vida,
+                valor: Some(0),
+            },
+        );
+        cartas.insert(
+            0,
+            Carta {
+                id: 37337,
+                nome: "O Vazio".to_string(),
+                descricao: "O deck está vazio!".to_string(),
+                ataque: Some(0),
+                defesa: Some(0),
+                vida: Some(0),
+                cura: Some(0),
+                bonus_ataque: Some(0),
+                bonus_defesa: Some(0),
+                bonus_vida: Some(0),
+                tipo: TipoCarta::Vida,
+                valor: Some(0),
+            },
+        );
+
+        cartas.insert(
+            0,
+            Carta {
+                id: 37337,
+                nome: "O Vazio".to_string(),
+                descricao: "O deck está vazio!".to_string(),
+                ataque: Some(0),
+                defesa: Some(0),
+                vida: Some(0),
+                cura: Some(0),
+                bonus_ataque: Some(0),
+                bonus_defesa: Some(0),
+                bonus_vida: Some(0),
+                tipo: TipoCarta::Vida,
+                valor: Some(0),
+            },
+        );
+
+        cartas.insert(
+            0,
+            Carta {
+                id: 37337,
+                nome: "O Vazio".to_string(),
+                descricao: "O deck está vazio!".to_string(),
+                ataque: Some(0),
+                defesa: Some(0),
+                vida: Some(0),
+                cura: Some(0),
+                bonus_ataque: Some(0),
+                bonus_defesa: Some(0),
+                bonus_vida: Some(0),
+                tipo: TipoCarta::Vida,
+                valor: Some(0),
+            },
+        );
+
+        cartas.insert(
+            0,
+            Carta {
+                id: 37337,
+                nome: "O Vazio".to_string(),
+                descricao: "O deck está vazio!".to_string(),
+                ataque: Some(0),
+                defesa: Some(0),
+                vida: Some(0),
+                cura: Some(0),
+                bonus_ataque: Some(0),
+                bonus_defesa: Some(0),
+                bonus_vida: Some(0),
+                tipo: TipoCarta::Vida,
+                valor: Some(0),
+            },
+        );
         //      info!("{:?}", cartas);
         self.cartas = cartas;
     }
@@ -376,6 +474,7 @@ struct Slot {
     level: i32,
     carta: Carta,
     posicao: i32, //pode ser 0 para na posiçao esquerda, 1 no meio e 2 na direita do tabuleiro
+    entidade_carta: Entity,
 }
 
 impl Default for Slot {
@@ -384,6 +483,7 @@ impl Default for Slot {
             level: 0,
             carta: Carta::default(),
             posicao: 0,
+            entidade_carta: Entity::PLACEHOLDER,
         }
     }
 }
@@ -453,34 +553,191 @@ fn atualiza_slot(
         let texto_carta_id = commands
             .spawn(Text2dBundle {
                 text: Text {
-                    sections: vec![
-                        TextSection {
-                            value: carta.nome.clone(),
-                            style: TextStyle {
-                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 39.0,
-                                color: Color::BLACK,
-                                ..Default::default()
-                            },
+                    sections: vec![TextSection {
+                        value: carta.nome.clone(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 39.0,
+                            color: Color::BLACK,
+                            ..Default::default()
                         },
-                        TextSection {
-                            value: format!("\n{}", carta.ataque.unwrap_or_default()),
-                            style: TextStyle {
-                                //            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 35.0,
-                                color: Color::BLACK,
-                                ..Default::default()
-                            },
-                        },
-                    ],
+                    }],
                     ..Default::default()
                 },
                 transform: Transform::from_xyz(0., 0., 1.),
                 ..Default::default()
             })
             .id();
-        commands.entity(carta_id).push_children(&[texto_carta_id]);
 
+        if carta.tipo == TipoCarta::Inimigo {
+            let texto_carta_ataque = commands
+                .spawn(Text2dBundle {
+                    text: Text {
+                        sections: vec![TextSection {
+                            value: format!("ata:{}", carta.ataque.unwrap_or_default()),
+                            style: TextStyle {
+                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 39.0,
+                                color: Color::BLACK,
+                                ..Default::default()
+                            },
+                        }],
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(20., -100., 1.),
+                    ..Default::default()
+                })
+                .id();
+            let texto_carta_defesa = commands
+                .spawn(Text2dBundle {
+                    text: Text {
+                        sections: vec![TextSection {
+                            value: format!("def: {}", carta.defesa.unwrap_or_default()),
+                            style: TextStyle {
+                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 39.0,
+                                color: Color::BLACK,
+                                ..Default::default()
+                            },
+                        }],
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(20., 100., 1.),
+                    ..Default::default()
+                })
+                .id();
+            commands.entity(carta_id).push_children(&[texto_carta_id]);
+            commands
+                .entity(carta_id)
+                .push_children(&[texto_carta_ataque]);
+            commands
+                .entity(carta_id)
+                .push_children(&[texto_carta_defesa]);
+        }
+        if carta.tipo == TipoCarta::Artefato {
+            let texto_carta_ataque = commands
+                .spawn(Text2dBundle {
+                    text: Text {
+                        sections: vec![TextSection {
+                            value: format!("ata:{}", carta.ataque.unwrap_or_default()),
+                            style: TextStyle {
+                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 39.0,
+                                color: Color::BLACK,
+                                ..Default::default()
+                            },
+                        }],
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(20., -100., 1.),
+                    ..Default::default()
+                })
+                .id();
+            let texto_carta_defesa = commands
+                .spawn(Text2dBundle {
+                    text: Text {
+                        sections: vec![TextSection {
+                            value: format!("def: {}", carta.defesa.unwrap_or_default()),
+                            style: TextStyle {
+                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 39.0,
+                                color: Color::BLACK,
+                                ..Default::default()
+                            },
+                        }],
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(20., 100., 1.),
+                    ..Default::default()
+                })
+                .id();
+            commands.entity(carta_id).push_children(&[texto_carta_id]);
+            commands
+                .entity(carta_id)
+                .push_children(&[texto_carta_ataque]);
+            commands
+                .entity(carta_id)
+                .push_children(&[texto_carta_defesa]);
+        }
+        if carta.tipo == TipoCarta::Equipamento {
+            if carta.bonus_ataque.unwrap_or_default() > 0 {
+                let texto_carta_ataque = commands
+                    .spawn(Text2dBundle {
+                        text: Text {
+                            sections: vec![TextSection {
+                                value: format!("ata + {}", carta.bonus_ataque.unwrap_or_default()),
+                                style: TextStyle {
+                                    //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                    font_size: 39.0,
+                                    color: Color::BLACK,
+                                    ..Default::default()
+                                },
+                            }],
+                            ..Default::default()
+                        },
+
+                        transform: Transform::from_xyz(20., -100., 1.),
+                        ..Default::default()
+                    })
+                    .id();
+                commands.entity(carta_id).push_children(&[texto_carta_id]);
+                commands
+                    .entity(carta_id)
+                    .push_children(&[texto_carta_ataque]);
+            }
+            if carta.bonus_defesa.unwrap_or_default() > 0 {
+                let texto_carta_defesa = commands
+                    .spawn(Text2dBundle {
+                        text: Text {
+                            sections: vec![TextSection {
+                                value: format!("def + {}", carta.bonus_defesa.unwrap_or_default()),
+                                style: TextStyle {
+                                    //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                    font_size: 39.0,
+                                    color: Color::BLACK,
+                                    ..Default::default()
+                                },
+                            }],
+                            ..Default::default()
+                        },
+
+                        transform: Transform::from_xyz(20., -80., 1.),
+                        ..Default::default()
+                    })
+                    .id();
+                commands.entity(carta_id).push_children(&[texto_carta_id]);
+                commands
+                    .entity(carta_id)
+                    .push_children(&[texto_carta_defesa]);
+            }
+        }
+
+        if carta.tipo == TipoCarta::Item {
+            let texto_carta_valor = commands
+                .spawn(Text2dBundle {
+                    text: Text {
+                        sections: vec![TextSection {
+                            value: format!("$${}$$", carta.valor.unwrap_or_default()),
+                            style: TextStyle {
+                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 39.0,
+                                color: Color::BLACK,
+                                ..Default::default()
+                            },
+                        }],
+                        ..Default::default()
+                    },
+                    transform: Transform::from_xyz(0., -100., 1.),
+                    ..Default::default()
+                })
+                .id();
+            commands.entity(carta_id).push_children(&[texto_carta_id]);
+            commands
+                .entity(carta_id)
+                .push_children(&[texto_carta_valor]);
+        }
+
+        slot.entidade_carta = carta_id;
         commands.entity(en_slot).remove::<Atualizar>();
     }
     //}
@@ -565,10 +822,25 @@ fn fim_dragging(
                     if carta.id == slot.carta.id {
                         //     commands.entity(entity_carta).despawn_recursive();
                         if entity_carta != entity {
-                            commands.entity(entity_carta).despawn_recursive();
-                            //ao inves de desespawnar a carta, a carta perde o componente carta e fica
-                            //do lado esquerdo da tela para representar que ela foi aduerida pelo jogador
-                            //se for um inimigo fica ao lado do deck, no que seria um cemitario
+                            if slot.entidade_carta == entity_carta {
+                                if carta.nome == "Escadas" {
+                                    commands.entity(entity_carta).despawn_recursive();
+                                    ew_envia_status.send(e_envia_status(
+                                        "Voce chegou até as escadas para baixo...".to_string(),
+                                    ));
+                                    return;
+                                }
+                                if carta.nome == "O Vazio" {
+                                    commands.entity(entity_carta).despawn_recursive();
+                                    ew_envia_status.send(e_envia_status(
+                                        "Voce caiu no vazio... GAME OVER".to_string(),
+                                    ));
+                                    return;
+                                }
+
+                                commands.entity(slot.entidade_carta).despawn_recursive();
+                                slot.entidade_carta = Entity::PLACEHOLDER;
+                            }
                         }
                     }
                 }

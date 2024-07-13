@@ -262,8 +262,65 @@ impl Deck {
         self.cartas = cartas;
         //imprime info para eu debugar
         //        for carta in self.cartas.iter() {
-        //          info!("{:?}", carta);
+        //            info!("{:?}", carta.nome);
+        //        }
+    }
+
+    //criar uma funcao que varre as cartas do deck, separa em tipos e atualiza o deck para que a
+    //cada 4 cartas de um tipo, uma carta de outro tipo seja adiciona
+    // o deck tem que ter 30 cartas
+    fn monta_deck(&mut self) {
+        let mut cartas_inimigo: Vec<Carta> = Vec::new();
+        let mut cartas_vida: Vec<Carta> = Vec::new();
+        let mut cartas_equipamento: Vec<Carta> = Vec::new();
+        let mut cartas_artefato: Vec<Carta> = Vec::new();
+        let mut cartas_item: Vec<Carta> = Vec::new();
+        let mut cartas: Vec<Carta> = Vec::new();
+        for carta in self.cartas.iter() {
+            match carta.tipo {
+                TipoCarta::Inimigo => cartas_inimigo.push(carta.clone()),
+                TipoCarta::Vida => cartas_vida.push(carta.clone()),
+                TipoCarta::Equipamento => cartas_equipamento.push(carta.clone()),
+                TipoCarta::Artefato => cartas_artefato.push(carta.clone()),
+                TipoCarta::Item => cartas_item.push(carta.clone()),
+            }
+        }
+        //crie um algoritimo para montar um deck com 30 cartas com frequencias diferente dependendo
+        //do tipo
+        let mut rng = rand::thread_rng();
+        cartas_inimigo.shuffle(&mut rng);
+
+        //        for carta in cartas_equipamento.iter() {
+        //          info!("{:?}", carta.nome);
         //    }
+
+        //        cartas_vida.shuffle(&mut rng);
+        cartas_equipamento.shuffle(&mut rng);
+        cartas_artefato.shuffle(&mut rng);
+        cartas_item.shuffle(&mut rng);
+        let mut i = 0;
+        while i < 50 {
+            if cartas_inimigo.len() > 0 {
+                cartas.push(cartas_inimigo.pop().unwrap_or_default());
+            }
+            if cartas_vida.len() > 0 {
+                cartas.push(cartas_vida.pop().unwrap_or_default());
+            }
+            if cartas_equipamento.len() > 0 {
+                cartas.push(cartas_equipamento.pop().unwrap_or_default());
+            }
+            if cartas_artefato.len() > 0 {
+                cartas.push(cartas_artefato.pop().unwrap_or_default());
+            }
+            if cartas_item.len() > 0 {
+                cartas.push(cartas_item.pop().unwrap_or_default());
+            }
+
+            i += 5;
+        }
+        cartas.shuffle(&mut rng);
+        //      info!("{:?}", cartas);
+        self.cartas = cartas;
     }
 
     fn init_do_backend() -> Result<Vec<Carta>, Box<dyn Error>> {
@@ -354,7 +411,9 @@ fn atualiza_slot(
         //      for (_, mut deck) in query_deck.iter_mut() {
         //let carta = deck.get_primeira_carta();
         let carta = slot.carta.clone();
-
+        if carta.nome == "Carta Vazia" {
+            continue;
+        }
         let cor: Color = match carta.tipo {
             TipoCarta::Inimigo => Srgba::new(1.0, 0.5, 0.5, 1.0).into(),
             TipoCarta::Vida => Srgba::new(0.5, 1.0, 0.5, 1.0).into(),
@@ -655,7 +714,7 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
     let mut deck = Deck::default();
     deck.init_de_json();
-    deck.embaralhar();
+    deck.monta_deck();
 
     commands.spawn((
         PickableBundle::default(),

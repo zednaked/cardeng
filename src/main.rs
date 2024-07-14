@@ -35,7 +35,7 @@ fn main() {
         //        .add_systems(Update, montar_jogo.run_if(on_event::<e_monta_jogo>()))
         .add_systems(
             Update,
-            (resetar_jogo, montar_jogo)
+            (resetar_jogo, montar_jogo, atualiza_slot)
                 .chain()
                 .run_if(on_event::<e_resetar_jogo>()),
         )
@@ -178,16 +178,25 @@ struct e_envia_status(String);
 
 fn atualiza_status(
     mut events: EventReader<e_envia_status>,
-    mut q_texto_status: Query<(&mut Text, &Status)>,
+    mut q_texto_status: Query<(&mut Text, &Status), With<Status>>,
 ) {
-    //fo!("{!}", events)
+    // info!("{}", events.0);
     let mut texto_montado: String = "".to_string();
     for event in events.read() {
         texto_montado = format!("{}\n{}", texto_montado, event.0);
         //        info!("{}", event.0);
     }
+    if q_texto_status.iter().count() == 0 {
+        return;
+    }
+    if q_texto_status.iter().count() > 1 {
+        return;
+    }
+    //q_texto_status.single();
+
     for (mut texto, _) in q_texto_status.iter_mut() {
         texto.sections[0].value = texto_montado.clone();
+        info!("{}", texto.sections[0].value);
     }
 }
 
@@ -234,6 +243,8 @@ enum TipoCarta {
     Equipamento,
     Artefato,
     Item,
+    Vazio,
+    Escadas,
 }
 
 impl Default for Carta {
@@ -290,6 +301,9 @@ impl Deck {
         let mut cartas: Vec<Carta> = Vec::new();
         for carta in self.cartas.iter() {
             match carta.tipo {
+                TipoCarta::Vazio => cartas.push(carta.clone()),
+                TipoCarta::Escadas => cartas.push(carta.clone()),
+
                 TipoCarta::Inimigo => cartas_inimigo.push(carta.clone()),
                 TipoCarta::Vida => cartas_vida.push(carta.clone()),
                 TipoCarta::Equipamento => cartas_equipamento.push(carta.clone()),
@@ -336,7 +350,7 @@ impl Deck {
                 bonus_ataque: Some(0),
                 bonus_defesa: Some(0),
                 bonus_vida: Some(0),
-                tipo: TipoCarta::Vida,
+                tipo: TipoCarta::Escadas,
                 valor: Some(0),
             },
         );
@@ -353,25 +367,7 @@ impl Deck {
                 bonus_ataque: Some(0),
                 bonus_defesa: Some(0),
                 bonus_vida: Some(0),
-                tipo: TipoCarta::Vida,
-                valor: Some(0),
-            },
-        );
-
-        cartas.insert(
-            0,
-            Carta {
-                id: 37337,
-                nome: "O Vazio".to_string(),
-                descricao: "O deck está vazio!".to_string(),
-                ataque: Some(0),
-                defesa: Some(0),
-                vida: Some(0),
-                cura: Some(0),
-                bonus_ataque: Some(0),
-                bonus_defesa: Some(0),
-                bonus_vida: Some(0),
-                tipo: TipoCarta::Vida,
+                tipo: TipoCarta::Vazio,
                 valor: Some(0),
             },
         );
@@ -389,7 +385,7 @@ impl Deck {
                 bonus_ataque: Some(0),
                 bonus_defesa: Some(0),
                 bonus_vida: Some(0),
-                tipo: TipoCarta::Vida,
+                tipo: TipoCarta::Vazio,
                 valor: Some(0),
             },
         );
@@ -407,7 +403,25 @@ impl Deck {
                 bonus_ataque: Some(0),
                 bonus_defesa: Some(0),
                 bonus_vida: Some(0),
-                tipo: TipoCarta::Vida,
+                tipo: TipoCarta::Vazio,
+                valor: Some(0),
+            },
+        );
+
+        cartas.insert(
+            0,
+            Carta {
+                id: 37337,
+                nome: "O Vazio".to_string(),
+                descricao: "O deck está vazio!".to_string(),
+                ataque: Some(0),
+                defesa: Some(0),
+                vida: Some(0),
+                cura: Some(0),
+                bonus_ataque: Some(0),
+                bonus_defesa: Some(0),
+                bonus_vida: Some(0),
+                tipo: TipoCarta::Vazio,
                 valor: Some(0),
             },
         );
@@ -505,10 +519,10 @@ fn atualiza_slot(
         //      for (_, mut deck) in query_deck.iter_mut() {
         //let carta = deck.get_primeira_carta();
         let carta = slot.carta.clone();
-        if carta.nome == "Carta Vazia" {
-            continue;
-        }
+
         let cor: Color = match carta.tipo {
+            TipoCarta::Vazio => Srgba::new(0.1, 0.2, 0.1, 1.0).into(),
+            TipoCarta::Escadas => Srgba::new(0.5, 0.5, 0.5, 1.0).into(),
             TipoCarta::Inimigo => Srgba::new(1.0, 0.5, 0.5, 1.0).into(),
             TipoCarta::Vida => Srgba::new(0.5, 1.0, 0.5, 1.0).into(),
             TipoCarta::Equipamento => Srgba::new(0.5, 0.5, 1.0, 1.0).into(),
@@ -544,6 +558,7 @@ fn atualiza_slot(
         //spawnar os dados da carta
         commands.entity(carta_id).insert(carta.clone());
         //spawnar os labels da carta
+        info!("{}", carta.nome);
         let texto_carta_id = commands
             .spawn(Text2dBundle {
                 text: Text {
@@ -600,7 +615,6 @@ fn atualiza_slot(
                     ..Default::default()
                 })
                 .id();
-            commands.entity(carta_id).push_children(&[texto_carta_id]);
             commands
                 .entity(carta_id)
                 .push_children(&[texto_carta_ataque]);
@@ -645,7 +659,6 @@ fn atualiza_slot(
                     ..Default::default()
                 })
                 .id();
-            commands.entity(carta_id).push_children(&[texto_carta_id]);
             commands
                 .entity(carta_id)
                 .push_children(&[texto_carta_ataque]);
@@ -674,7 +687,6 @@ fn atualiza_slot(
                         ..Default::default()
                     })
                     .id();
-                commands.entity(carta_id).push_children(&[texto_carta_id]);
                 commands
                     .entity(carta_id)
                     .push_children(&[texto_carta_ataque]);
@@ -699,7 +711,6 @@ fn atualiza_slot(
                         ..Default::default()
                     })
                     .id();
-                commands.entity(carta_id).push_children(&[texto_carta_id]);
                 commands
                     .entity(carta_id)
                     .push_children(&[texto_carta_defesa]);
@@ -725,13 +736,14 @@ fn atualiza_slot(
                     ..Default::default()
                 })
                 .id();
-            commands.entity(carta_id).push_children(&[texto_carta_id]);
             commands
                 .entity(carta_id)
                 .push_children(&[texto_carta_valor]);
         }
 
+        commands.entity(carta_id).push_children(&[texto_carta_id]);
         slot.entidade_carta = carta_id;
+
         commands.entity(en_slot).remove::<Atualizar>();
     }
     //}
@@ -819,7 +831,7 @@ fn fim_dragging(
                         if entity_carta != entity {
                             if slot.entidade_carta == entity_carta {
                                 if carta.nome == "Escadas" {
-                                    commands.entity(entity_carta).despawn_recursive();
+                                    //                                    commands.entity(entity_carta).despawn_recursive();
                                     ew_envia_status.send(e_envia_status(
                                         "Voce chegou até as escadas para baixo...".to_string(),
                                     ));
@@ -828,7 +840,7 @@ fn fim_dragging(
                                     return;
                                 }
                                 if carta.nome == "O Vazio" {
-                                    commands.entity(entity_carta).despawn_recursive();
+                                    //                                  commands.entity(entity_carta).despawn_recursive();
                                     ew_envia_status.send(e_envia_status(
                                         "Voce caiu no vazio... GAME OVER".to_string(),
                                     ));
@@ -854,6 +866,17 @@ fn fim_dragging(
                 jogador.jogador.posicao = slot.posicao;
 
                 match slot.carta.tipo {
+                    TipoCarta::Escadas => {
+                        ew_envia_status
+                            .send(e_envia_status("Voce encontrou as escadas".to_string()));
+                        jogador.jogador.level += 1;
+                        jogador.jogador.xp += 1;
+                        jogador.jogador.ouro += 1;
+                    }
+                    TipoCarta::Vazio => {
+                        ew_envia_status.send(e_envia_status("Voce caiu no vazio".to_string()));
+                        jogador.jogador.vida_atual -= 1;
+                    }
                     TipoCarta::Inimigo => {
                         ew_envia_status
                             .send(e_envia_status("Voce encontrou um inimigo".to_string()));
@@ -908,7 +931,7 @@ fn fim_dragging(
                 //cria mais 3 slots
                 for i in 1..4 {
                     slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
-                        id: 0,
+                        id: 9999,
                         nome: "Carta Vazia".to_string(),
                         descricao: "O deck está vazio!".to_string(),
                         ataque: Some(0),
@@ -919,7 +942,7 @@ fn fim_dragging(
                         bonus_defesa: Some(0),
                         bonus_vida: Some(0),
 
-                        tipo: TipoCarta::Vida,
+                        tipo: TipoCarta::Vazio,
                         valor: Some(0),
                     });
                     slot.set_level(deck.level);
@@ -982,8 +1005,6 @@ fn montar_jogo(
     mut commands: Commands,
     mut res_deck: ResMut<config>,
     mut asset_server: Res<AssetServer>,
-    mut ew_atualiza_slot: EventWriter<e_atualiza_slot>,
-    mut ew_envia_status: EventWriter<e_envia_status>,
     mut q_camera: Query<(&mut Transform, &Camera2d), (Without<Carta>, With<Camera2d>)>,
 ) {
     res_deck.jogador.level = 0;
@@ -1000,17 +1021,14 @@ fn montar_jogo(
     let deck_img = asset_server.load("deck.png");
     let slot_img = asset_server.load("cemiterio.png");
 
-    let mut deck = Deck::default();
+    let mut deck = res_deck.deck.clone();
 
     for (mut transform, _) in q_camera.iter_mut() {
         transform.translation.y = 0.;
     }
 
-    deck.init_de_json();
-    deck.monta_deck();
-
     commands.spawn((
-        PickableBundle::default(),
+        //        PickableBundle::default(),
         deck.clone(),
         // On::<Pointer<Down>>::run(spawna_carta),
         SpriteBundle {
@@ -1145,7 +1163,7 @@ fn montar_jogo(
     commands.entity(carta_id).push_children(&[texto_carta_id]);
 
     res_deck.deck = deck.clone();
-    ew_atualiza_slot.send(e_atualiza_slot);
+    //    ew_atualiza_slot.send(e_atualiza_slot);
     //  info!("Jogo montado");
 }
 
@@ -1153,10 +1171,14 @@ fn resetar_jogo(
     mut commands: Commands,
     mut q_slots: Query<(Entity, &Slot)>,
     mut q_cartas: Query<(Entity, &Carta)>,
+    mut q_texto_jogador: Query<(Entity, &Text), Without<Status>>,
     mut q_deck: Query<(Entity, &Deck)>,
-    mut ew_monta_jogo: EventWriter<e_monta_jogo>,
+    mut config: ResMut<config>,
+    //  mut ew_monta_jogo: EventWriter<e_monta_jogo>,
     //    mut world: World,
 ) {
+    config.deck = Deck::default();
+
     for (entity, slot) in q_slots.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -1165,6 +1187,10 @@ fn resetar_jogo(
     }
     for (entity, deck) in q_deck.iter() {
         commands.entity(entity).despawn_recursive();
+    }
+    for (entidade, _) in q_texto_jogador.iter_mut() {
+        //texto.sections[0].value = "".to_string();
+        commands.entity(entidade).despawn_recursive();
     }
 
     // ew_monta_jogo.send(e_monta_jogo);

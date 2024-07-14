@@ -2,6 +2,7 @@ use bevy::{
     ecs::{
         query::{QueryData, QueryFilter},
         system::RunSystemOnce,
+        world,
     },
     prelude::*,
 };
@@ -24,12 +25,21 @@ fn main() {
             deck: Deck::default(),
             jogador: jogador::new(),
         })
-        .add_event::<e_spawnar_carta>()
+        //      .add_event::<e_spawnar_carta>()
+        .add_event::<e_monta_jogo>()
+        .add_event::<e_resetar_jogo>()
         .add_event::<e_atualiza_jogador>()
         .add_event::<e_atualiza_slot>()
         .add_event::<e_envia_status>()
         .add_plugins(DefaultPickingPlugins)
-        .add_systems(Update, spawna_carta.run_if(on_event::<e_spawnar_carta>()))
+        //        .add_systems(Update, montar_jogo.run_if(on_event::<e_monta_jogo>()))
+        .add_systems(
+            Update,
+            (resetar_jogo, montar_jogo)
+                .chain()
+                .run_if(on_event::<e_resetar_jogo>()),
+        )
+        //        .add_systems(Update, spawna_carta.run_if(on_event::<e_spawnar_carta>()))
         .add_systems(Update, atualiza_slot.run_if(on_event::<e_atualiza_slot>()))
         .add_systems(Update, atualiza_status.run_if(on_event::<e_envia_status>()))
         .add_systems(
@@ -168,14 +178,16 @@ struct e_envia_status(String);
 
 fn atualiza_status(
     mut events: EventReader<e_envia_status>,
-    mut q_texto_status: Query<(&mut Text), With<(Status)>>,
+    mut q_texto_status: Query<(&mut Text, &Status)>,
 ) {
     //fo!("{!}", events)
-    //
+    let mut texto_montado: String = "".to_string();
     for event in events.read() {
-        let mut texto = q_texto_status.single_mut();
-        texto.sections[0].value = format!("Status: {}", event.0);
-        info!("{}", event.0);
+        texto_montado = format!("{}\n{}", texto_montado, event.0);
+        //        info!("{}", event.0);
+    }
+    for (mut texto, _) in q_texto_status.iter_mut() {
+        texto.sections[0].value = texto_montado.clone();
     }
 }
 
@@ -269,9 +281,6 @@ impl Deck {
         //        }
     }
 
-    //criar uma funcao que varre as cartas do deck, separa em tipos e atualiza o deck para que a
-    //cada 4 cartas de um tipo, uma carta de outro tipo seja adiciona
-    // o deck tem que ter 30 cartas
     fn monta_deck(&mut self) {
         let mut cartas_inimigo: Vec<Carta> = Vec::new();
         let mut cartas_vida: Vec<Carta> = Vec::new();
@@ -288,16 +297,10 @@ impl Deck {
                 TipoCarta::Item => cartas_item.push(carta.clone()),
             }
         }
-        //crie um algoritimo para montar um deck com 30 cartas com frequencias diferente dependendo
-        //do tipo
+
         let mut rng = rand::thread_rng();
         cartas_inimigo.shuffle(&mut rng);
 
-        //        for carta in cartas_equipamento.iter() {
-        //          info!("{:?}", carta.nome);
-        //    }
-
-        //        cartas_vida.shuffle(&mut rng);
         cartas_equipamento.shuffle(&mut rng);
         cartas_artefato.shuffle(&mut rng);
         cartas_item.shuffle(&mut rng);
@@ -307,22 +310,13 @@ impl Deck {
                 cartas.push(cartas_inimigo.pop().unwrap_or_default());
             }
 
-            //            if cartas_inimigo.len() > 0 {
-            //              cartas.push(cartas_inimigo.pop().unwrap_or_default());
-            //        }
-            //      if cartas_vida.len() > 0 {
-            //        cartas.push(cartas_vida.pop().unwrap_or_default());
-            //  }
-            //acrescenta uma chance de 1/2 de aparecer um equipamento
             if (i % 3 == 0) && cartas_equipamento.len() > 0 {
                 cartas.push(cartas_equipamento.pop().unwrap_or_default());
             }
             if (i % 4 == 0) && cartas_artefato.len() > 0 {
-                //acrescenta uma chance de 1/3 de aparecer um artefato
                 cartas.push(cartas_artefato.pop().unwrap_or_default());
             }
             if (i % 2 == 0) && cartas_item.len() > 0 {
-                //acrescenta uma chance de 1/3 de aparecer um item
                 cartas.push(cartas_item.pop().unwrap_or_default());
             }
 
@@ -773,6 +767,7 @@ fn fim_dragging(
     mut ew_envia_status: EventWriter<e_envia_status>,
     mut ew_atualiza_jogador: EventWriter<e_atualiza_jogador>,
     mut ew_atualiza_slot: EventWriter<e_atualiza_slot>,
+    mut ew_resetar_jogo: EventWriter<e_resetar_jogo>,
 ) {
     //o jogo deve verificar o level do jogador e só deixar ele interagir com o proximo level, caso
     //contrario manda uma msg via status dizendo que ele não tem level suficiente
@@ -828,6 +823,8 @@ fn fim_dragging(
                                     ew_envia_status.send(e_envia_status(
                                         "Voce chegou até as escadas para baixo...".to_string(),
                                     ));
+                                    ew_resetar_jogo.send(e_resetar_jogo);
+
                                     return;
                                 }
                                 if carta.nome == "O Vazio" {
@@ -835,6 +832,7 @@ fn fim_dragging(
                                     ew_envia_status.send(e_envia_status(
                                         "Voce caiu no vazio... GAME OVER".to_string(),
                                     ));
+                                    ew_resetar_jogo.send(e_resetar_jogo);
                                     return;
                                 }
 
@@ -972,26 +970,49 @@ fn fim_dragging(
     }
 }
 
-fn setup(
+#[derive(Event)]
+struct e_resetar_jogo;
+
+//um evento para zerar o level, colocar o jogador no lugar inicial e começar um jogo novo
+
+#[derive(Event)]
+struct e_monta_jogo;
+
+fn montar_jogo(
     mut commands: Commands,
-    mut asset_server: Res<AssetServer>,
     mut res_deck: ResMut<config>,
-    mut ew_spawna_carta: EventWriter<e_spawnar_carta>,
+    mut asset_server: Res<AssetServer>,
     mut ew_atualiza_slot: EventWriter<e_atualiza_slot>,
     mut ew_envia_status: EventWriter<e_envia_status>,
+    mut q_camera: Query<(&mut Transform, &Camera2d), (Without<Carta>, With<Camera2d>)>,
 ) {
+    res_deck.jogador.level = 0;
+    res_deck.jogador.ataque = 1;
+    res_deck.jogador.defesa = 1;
+    res_deck.jogador.vida_atual = 10;
+    res_deck.jogador.vida_inicial = 10;
+    res_deck.jogador.ouro = 0;
+    res_deck.jogador.xp = 0;
+    res_deck.jogador.posicao = 1;
+    res_deck.deck = Deck::default();
+    res_deck.deck.init_de_json();
+    res_deck.deck.monta_deck();
     let deck_img = asset_server.load("deck.png");
     let slot_img = asset_server.load("cemiterio.png");
 
-    commands.spawn(Camera2dBundle::default());
     let mut deck = Deck::default();
+
+    for (mut transform, _) in q_camera.iter_mut() {
+        transform.translation.y = 0.;
+    }
+
     deck.init_de_json();
     deck.monta_deck();
 
     commands.spawn((
         PickableBundle::default(),
         deck.clone(),
-        On::<Pointer<Down>>::run(spawna_carta),
+        // On::<Pointer<Down>>::run(spawna_carta),
         SpriteBundle {
             texture: deck_img.clone(),
             transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(0.5)),
@@ -1002,10 +1023,6 @@ fn setup(
     let mut slot = Slot::default();
     for ii in 0..3 {
         for i in 1..4 {
-            // let mut slot = Slot::default();
-            //slot.adc_carta(deck.clone());
-
-            // slot.carta = deck.cartas.pop().unwrap();
             slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
                 id: 0,
                 nome: "Carta Vazia".to_string(),
@@ -1024,7 +1041,7 @@ fn setup(
             slot.set_level(ii);
             slot.posicao = i - 1; //esta começando do 1
             commands.spawn((
-                PickableBundle::default(),
+                //       PickableBundle::default(),
                 slot.clone(),
                 Atualizar,
                 SpriteBundle {
@@ -1046,7 +1063,7 @@ fn setup(
     deck.level = 2;
 
     commands.spawn((
-        PickableBundle::default(),
+        //PickableBundle::default(),
         Slot::default(),
         SpriteBundle {
             //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
@@ -1058,7 +1075,6 @@ fn setup(
     ));
 
     //    ew_spawna_carta.send(e_spawnar_carta);
-    ew_atualiza_slot.send(e_atualiza_slot);
 
     let carta_img: Handle<Image> = asset_server.load("carta.png");
     let carta_id = commands
@@ -1128,9 +1144,34 @@ fn setup(
         .id();
     commands.entity(carta_id).push_children(&[texto_carta_id]);
 
-    //    let mut world = World::new();
-    //    world.run_system_once(spawna_carta);
-    //cria label pro status com o componente
+    res_deck.deck = deck.clone();
+    ew_atualiza_slot.send(e_atualiza_slot);
+    //  info!("Jogo montado");
+}
+
+fn resetar_jogo(
+    mut commands: Commands,
+    mut q_slots: Query<(Entity, &Slot)>,
+    mut q_cartas: Query<(Entity, &Carta)>,
+    mut q_deck: Query<(Entity, &Deck)>,
+    mut ew_monta_jogo: EventWriter<e_monta_jogo>,
+    //    mut world: World,
+) {
+    for (entity, slot) in q_slots.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for (entity, carta) in q_cartas.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for (entity, deck) in q_deck.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+
+    // ew_monta_jogo.send(e_monta_jogo);
+}
+
+fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo>) {
+    commands.spawn(Camera2dBundle::default());
 
     let mut status = commands.spawn((
         TextBundle::from("Status: "),
@@ -1138,9 +1179,7 @@ fn setup(
         //    Transform::from_xyz(300., 0., 1.),
     ));
     status.insert(Transform::from_xyz(300., 0., 1.));
-
-    res_deck.deck = deck.clone();
-    ew_envia_status.send(e_envia_status("Voce entrou na dungeon".to_string()));
+    ew_resetar_jogo.send(e_resetar_jogo);
 }
 
 fn spawna_carta(

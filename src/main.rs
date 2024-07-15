@@ -521,7 +521,18 @@ fn atualiza_slot(
             TipoCarta::Item => Srgba::new(0.8, 0.3, 0.5, 1.0).into(),
         };
 
-        let carta_img: Handle<Image> = asset_server.load("carta.png");
+        // let carta_img: Handle<Image> = asset_server.load("carta.png");
+
+        let carta_img: Handle<Image> = match carta.tipo {
+            TipoCarta::Vazio => asset_server.load("carta-roxa.png"),
+            TipoCarta::Escadas => asset_server.load("carta-roxa.png"),
+            TipoCarta::Inimigo => asset_server.load("carta-vermelha.png"),
+            TipoCarta::Vida => asset_server.load("carta-verde.png"),
+            TipoCarta::Equipamento => asset_server.load("carta-verde.png"),
+            TipoCarta::Artefato => asset_server.load("carta-amarela.png"),
+            TipoCarta::Item => asset_server.load("carta-amarela.png"),
+        };
+
         let carta_id = commands
             .spawn((
                 Ancora {
@@ -531,7 +542,7 @@ fn atualiza_slot(
                 PickableBundle::default(),
                 SpriteBundle {
                     sprite: Sprite {
-                        color: cor,
+                        //                        color: cor,
                         ..Default::default()
                     },
 
@@ -557,7 +568,7 @@ fn atualiza_slot(
                         value: carta.nome.clone(),
                         style: TextStyle {
                             //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 39.0,
+                            font_size: 33.0,
                             color: Color::BLACK,
                             ..Default::default()
                         },
@@ -574,51 +585,30 @@ fn atualiza_slot(
                 .spawn(Text2dBundle {
                     text: Text {
                         sections: vec![TextSection {
-                            value: format!("ata:{}", carta.ataque.unwrap_or_default()),
+                            value: format!("{}", carta.ataque.unwrap_or_default()),
                             style: TextStyle {
                                 //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 39.0,
-                                color: Color::BLACK,
+                                font_size: 32.0,
+                                color: Color::WHITE,
                                 ..Default::default()
                             },
                         }],
                         ..Default::default()
                     },
-                    transform: Transform::from_xyz(20., -100., 1.),
-                    ..Default::default()
-                })
-                .id();
-            let texto_carta_defesa = commands
-                .spawn(Text2dBundle {
-                    text: Text {
-                        sections: vec![TextSection {
-                            value: format!("def: {}", carta.defesa.unwrap_or_default()),
-                            style: TextStyle {
-                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 39.0,
-                                color: Color::BLACK,
-                                ..Default::default()
-                            },
-                        }],
-                        ..Default::default()
-                    },
-                    transform: Transform::from_xyz(20., 100., 1.),
+                    transform: Transform::from_xyz(-50., 85., 1.),
                     ..Default::default()
                 })
                 .id();
             commands
                 .entity(carta_id)
                 .push_children(&[texto_carta_ataque]);
-            commands
-                .entity(carta_id)
-                .push_children(&[texto_carta_defesa]);
         }
         if carta.tipo == TipoCarta::Artefato {
-            let texto_carta_ataque = commands
+            let texto_carta_efeito = commands
                 .spawn(Text2dBundle {
                     text: Text {
                         sections: vec![TextSection {
-                            value: format!("ata:{}", carta.ataque.unwrap_or_default()),
+                            value: format!("{}", carta.ataque.unwrap_or_default()),
                             style: TextStyle {
                                 //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                                 font_size: 39.0,
@@ -628,34 +618,13 @@ fn atualiza_slot(
                         }],
                         ..Default::default()
                     },
-                    transform: Transform::from_xyz(20., -100., 1.),
-                    ..Default::default()
-                })
-                .id();
-            let texto_carta_defesa = commands
-                .spawn(Text2dBundle {
-                    text: Text {
-                        sections: vec![TextSection {
-                            value: format!("def: {}", carta.defesa.unwrap_or_default()),
-                            style: TextStyle {
-                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 39.0,
-                                color: Color::BLACK,
-                                ..Default::default()
-                            },
-                        }],
-                        ..Default::default()
-                    },
-                    transform: Transform::from_xyz(20., 100., 1.),
+                    transform: Transform::from_xyz(-50., 85., 1.),
                     ..Default::default()
                 })
                 .id();
             commands
                 .entity(carta_id)
-                .push_children(&[texto_carta_ataque]);
-            commands
-                .entity(carta_id)
-                .push_children(&[texto_carta_defesa]);
+                .push_children(&[texto_carta_efeito]);
         }
         if carta.tipo == TipoCarta::Equipamento {
             if carta.bonus_ataque.unwrap_or_default() > 0 {
@@ -663,10 +632,10 @@ fn atualiza_slot(
                     .spawn(Text2dBundle {
                         text: Text {
                             sections: vec![TextSection {
-                                value: format!("ata + {}", carta.bonus_ataque.unwrap_or_default()),
+                                value: format!("{}", carta.bonus_ataque.unwrap_or_default()),
                                 style: TextStyle {
                                     //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                    font_size: 39.0,
+                                    font_size: 30.0,
                                     color: Color::BLACK,
                                     ..Default::default()
                                 },
@@ -674,7 +643,7 @@ fn atualiza_slot(
                             ..Default::default()
                         },
 
-                        transform: Transform::from_xyz(20., -100., 1.),
+                        transform: Transform::from_xyz(-50., 85., 1.),
                         ..Default::default()
                     })
                     .id();
@@ -687,10 +656,10 @@ fn atualiza_slot(
                     .spawn(Text2dBundle {
                         text: Text {
                             sections: vec![TextSection {
-                                value: format!("def + {}", carta.bonus_defesa.unwrap_or_default()),
+                                value: format!("{}", carta.bonus_defesa.unwrap_or_default()),
                                 style: TextStyle {
                                     //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                    font_size: 39.0,
+                                    font_size: 30.0,
                                     color: Color::BLACK,
                                     ..Default::default()
                                 },
@@ -698,7 +667,7 @@ fn atualiza_slot(
                             ..Default::default()
                         },
 
-                        transform: Transform::from_xyz(20., -80., 1.),
+                        transform: Transform::from_xyz(-50., 85., 1.),
                         ..Default::default()
                     })
                     .id();
@@ -713,17 +682,17 @@ fn atualiza_slot(
                 .spawn(Text2dBundle {
                     text: Text {
                         sections: vec![TextSection {
-                            value: format!("$${}$$", carta.valor.unwrap_or_default()),
+                            value: format!("{}", carta.valor.unwrap_or_default()),
                             style: TextStyle {
                                 //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 39.0,
+                                font_size: 33.0,
                                 color: Color::BLACK,
                                 ..Default::default()
                             },
                         }],
                         ..Default::default()
                     },
-                    transform: Transform::from_xyz(0., -100., 1.),
+                    transform: Transform::from_xyz(-50., 85., 1.),
                     ..Default::default()
                 })
                 .id();
@@ -1138,13 +1107,13 @@ fn montar_jogo(
                         style: TextStyle {
                             //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                             font_size: 38.0,
-                            color: Color::BLACK,
+                            color: Color::WHITE,
                             ..Default::default()
                         },
                     }],
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(-48., 78., 1.),
+                transform: Transform::from_xyz(-48., 81., 1.),
                 ..Default::default()
             },
         ))

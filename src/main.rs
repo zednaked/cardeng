@@ -70,16 +70,7 @@ fn atualiza_jogador(
         }
 
         for mut texto in q_texto_jogador.iter_mut() {
-            texto.sections[1].value = format!(
-                "Vida: {}/{}\nAtaque: {}\nDefesa: {}\nOuro: {}\nLevel: {}\nXP: {}\n",
-                jogador.jogador.vida_atual,
-                jogador.jogador.vida_inicial,
-                jogador.jogador.ataque,
-                jogador.jogador.defesa,
-                jogador.jogador.ouro,
-                jogador.jogador.level,
-                jogador.jogador.xp
-            );
+            texto.sections[0].value = format!("{}", jogador.jogador.vida_atual);
         }
     }
 }
@@ -181,7 +172,7 @@ fn atualiza_status(
     mut q_texto_status: Query<(&mut Text, &Status), With<Status>>,
 ) {
     // info!("{}", events.0);
-    let mut texto_montado: String = "".to_string();
+    let mut texto_montado: String = "Status: ".to_string();
     for event in events.read() {
         texto_montado = format!("{}\n{}", texto_montado, event.0);
         //        info!("{}", event.0);
@@ -196,7 +187,7 @@ fn atualiza_status(
 
     for (mut texto, _) in q_texto_status.iter_mut() {
         texto.sections[0].value = texto_montado.clone();
-        info!("{}", texto.sections[0].value);
+        //     info!("{}", texto.sections[0].value);
     }
 }
 
@@ -521,13 +512,13 @@ fn atualiza_slot(
         let carta = slot.carta.clone();
 
         let cor: Color = match carta.tipo {
-            TipoCarta::Vazio => Srgba::new(0.1, 0.2, 0.1, 1.0).into(),
-            TipoCarta::Escadas => Srgba::new(0.5, 0.5, 0.5, 1.0).into(),
+            TipoCarta::Vazio => Srgba::new(0.1, 0.2, 0.4, 1.0).into(),
+            TipoCarta::Escadas => Srgba::new(0.1, 0.1, 0.2, 1.0).into(),
             TipoCarta::Inimigo => Srgba::new(1.0, 0.5, 0.5, 1.0).into(),
             TipoCarta::Vida => Srgba::new(0.5, 1.0, 0.5, 1.0).into(),
             TipoCarta::Equipamento => Srgba::new(0.5, 0.5, 1.0, 1.0).into(),
-            TipoCarta::Artefato => Srgba::new(1.0, 1.0, 0.5, 1.0).into(),
-            TipoCarta::Item => Srgba::new(0.5, 0.5, 0.5, 1.0).into(),
+            TipoCarta::Artefato => Srgba::new(1.0, 0.3, 1.0, 1.0).into(),
+            TipoCarta::Item => Srgba::new(0.8, 0.3, 0.5, 1.0).into(),
         };
 
         let carta_img: Handle<Image> = asset_server.load("carta.png");
@@ -550,7 +541,7 @@ fn atualiza_slot(
                         transform_slot.translation.y,
                         1.,
                     )
-                    .with_scale(Vec3::splat(0.5)),
+                    .with_scale(Vec3::splat(1.0)),
                     ..Default::default()
                 },
             ))
@@ -558,7 +549,7 @@ fn atualiza_slot(
         //spawnar os dados da carta
         commands.entity(carta_id).insert(carta.clone());
         //spawnar os labels da carta
-        info!("{}", carta.nome);
+        //        info!("{}", carta.nome);
         let texto_carta_id = commands
             .spawn(Text2dBundle {
                 text: Text {
@@ -788,8 +779,8 @@ fn fim_dragging(
         commands.entity(entity).remove::<ProcessaFimDragging>();
         commands.entity(entity).remove::<Dragging>();
         for (entity_slot, mut slot, transform_slot) in query_slots.iter_mut() {
-            if (transform_carta.translation.x - transform_slot.translation.x).abs() < 50.
-                && (transform_carta.translation.y - transform_slot.translation.y).abs() < 50.
+            if (transform_carta.translation.x - transform_slot.translation.x).abs() < 150.
+                && (transform_carta.translation.y - transform_slot.translation.y).abs() < 150.
             {
                 if slot.level > jogador.jogador.level {
                     ew_envia_status
@@ -871,20 +862,22 @@ fn fim_dragging(
                             .send(e_envia_status("Voce encontrou as escadas".to_string()));
                         jogador.jogador.level += 1;
                         jogador.jogador.xp += 1;
-                        jogador.jogador.ouro += 1;
+                        //                  jogador.jogador.ouro += 1;
                     }
                     TipoCarta::Vazio => {
                         ew_envia_status.send(e_envia_status("Voce caiu no vazio".to_string()));
-                        jogador.jogador.vida_atual -= 1;
+                        //                jogador.jogador.vida_atual -= 1;
                     }
                     TipoCarta::Inimigo => {
                         ew_envia_status
                             .send(e_envia_status("Voce encontrou um inimigo".to_string()));
-                        jogador.jogador.xp += slot.carta.ataque.unwrap_or_default();
-                        ew_atualiza_jogador.send(e_atualiza_jogador {
-                            tipo: TipoAtualizacao::tomar_dano,
-                            valor: 1,
-                        });
+                        //verifica Defesa do player + bonus de defesa, - ataque do inimigo = dano
+                        let defesa =
+                            jogador.jogador.defesa + slot.carta.bonus_defesa.unwrap_or_default();
+                        let dano = defesa - slot.carta.ataque.unwrap_or_default();
+                        jogador.jogador.xp += slot.carta.valor.unwrap_or_default();
+                        jogador.jogador.ouro += slot.carta.valor.unwrap_or_default();
+                        jogador.jogador.vida_atual -= dano.abs();
                     }
                     TipoCarta::Vida => {
                         ew_envia_status.send(e_envia_status("Voce encontrou um item".to_string()));
@@ -931,7 +924,7 @@ fn fim_dragging(
                 //cria mais 3 slots
                 for i in 1..4 {
                     slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
-                        id: 9999,
+                        id: 0,
                         nome: "Carta Vazia".to_string(),
                         descricao: "O deck está vazio!".to_string(),
                         ataque: Some(0),
@@ -959,11 +952,11 @@ fn fim_dragging(
                             //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
                             texture: slot_img.clone(),
                             transform: Transform::from_xyz(
-                                100. * i as f32,
-                                (130. * deck.level as f32) - 70.,
+                                (190. * i as f32) - 300.,
+                                (255. * deck.level as f32) + 70.,
                                 0.,
                             )
-                            .with_scale(Vec3::splat(0.5)),
+                            .with_scale(Vec3::splat(1.0)),
 
                             ..Default::default()
                         },
@@ -982,7 +975,7 @@ fn fim_dragging(
         transform_carta.translation.y = ancora_carta.y;
         //move a camera o suficiente para caber as novas cartas spawnadas
         for (mut transform, _) in q_camera.iter_mut() {
-            transform.translation.y += 100.;
+            transform.translation.y += 250.;
         }
 
         ew_atualiza_slot.send(e_atualiza_slot);
@@ -1033,7 +1026,7 @@ fn montar_jogo(
         // On::<Pointer<Down>>::run(spawna_carta),
         SpriteBundle {
             texture: deck_img.clone(),
-            transform: Transform::from_xyz(0., 0., 0.).with_scale(Vec3::splat(0.5)),
+            transform: Transform::from_xyz(-450., 0., 0.).with_scale(Vec3::splat(1.0)),
 
             ..Default::default()
         },
@@ -1053,7 +1046,7 @@ fn montar_jogo(
                 bonus_defesa: Some(0),
                 bonus_vida: Some(0),
 
-                tipo: TipoCarta::Vida,
+                tipo: TipoCarta::Vazio,
                 valor: Some(0),
             });
             slot.set_level(ii);
@@ -1069,8 +1062,12 @@ fn montar_jogo(
                     },
                     //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
                     texture: slot_img.clone(),
-                    transform: Transform::from_xyz(100. * i as f32, (130. * ii as f32) - 70., 0.)
-                        .with_scale(Vec3::splat(0.5)),
+                    transform: Transform::from_xyz(
+                        (190. * i as f32) - 300.,
+                        (255. * ii as f32) + 70.,
+                        0.,
+                    )
+                    .with_scale(Vec3::splat(1.0)),
 
                     ..Default::default()
                 },
@@ -1086,7 +1083,7 @@ fn montar_jogo(
         SpriteBundle {
             //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
             texture: slot_img.clone(),
-            transform: Transform::from_xyz(100. * 2 as f32, -195., 0.).with_scale(Vec3::splat(0.5)),
+            transform: Transform::from_xyz(80., -195., 0.).with_scale(Vec3::splat(1.0)),
 
             ..Default::default()
         },
@@ -1094,7 +1091,7 @@ fn montar_jogo(
 
     //    ew_spawna_carta.send(e_spawnar_carta);
 
-    let carta_img: Handle<Image> = asset_server.load("carta.png");
+    let carta_img: Handle<Image> = asset_server.load("carta-heroi.png");
     let carta_id = commands
         .spawn((
             Carta {
@@ -1111,7 +1108,7 @@ fn montar_jogo(
                 tipo: TipoCarta::Inimigo,
                 valor: Some(0),
             },
-            Ancora { x: 200., y: -195. },
+            Ancora { x: 80., y: -195. },
             PickableBundle::default(),
             On::<Pointer<DragStart>>::target_insert(Dragging),
             On::<Pointer<Drag>>::target_component_mut::<Transform>(|drag, transform| {
@@ -1121,50 +1118,57 @@ fn montar_jogo(
             On::<Pointer<DragEnd>>::target_insert(ProcessaFimDragging),
             SpriteBundle {
                 texture: carta_img.clone(),
-                transform: Transform::from_xyz(200., -195., 2.).with_scale(Vec3::splat(0.5)),
+                transform: Transform::from_xyz(80., -195., 9.).with_scale(Vec3::splat(1.0)),
                 ..Default::default()
             },
         ))
         .id();
 
     //spawnar os labels da carta
-    let texto_carta_id = commands
+    let texto_heroi_vida = commands
         .spawn((
+            UiCartaJogador {
+                tipo: TipoUiCartaJogador::Vida,
+            },
             LabelJogador,
             Text2dBundle {
                 text: Text {
-                    sections: vec![
-                        TextSection {
-                            value: "Heroi\n".to_string(),
-                            style: TextStyle {
-                                //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 38.0,
-                                color: Color::BLACK,
-                                ..Default::default()
-                            },
+                    sections: vec![TextSection {
+                        value: "0".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 38.0,
+                            color: Color::BLACK,
+                            ..Default::default()
                         },
-                        TextSection {
-                            value: "".to_string(),
-                            style: TextStyle {
-                                //            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 25.0,
-                                color: Color::BLACK,
-                                ..Default::default()
-                            },
-                        },
-                    ],
+                    }],
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(0., 23., 1.),
+                transform: Transform::from_xyz(-48., 78., 1.),
                 ..Default::default()
             },
         ))
         .id();
-    commands.entity(carta_id).push_children(&[texto_carta_id]);
+    commands.entity(carta_id).push_children(&[texto_heroi_vida]);
 
     res_deck.deck = deck.clone();
     //    ew_atualiza_slot.send(e_atualiza_slot);
     //  info!("Jogo montado");
+}
+
+#[derive(Debug, Component, Clone)]
+struct UiCartaJogador {
+    tipo: TipoUiCartaJogador,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum TipoUiCartaJogador {
+    Vida,
+    Defesa,
+    Ataque,
+    Level,
+    Ouro,
+    Xp,
 }
 
 fn resetar_jogo(
@@ -1233,7 +1237,7 @@ fn spawna_carta(
                 On::<Pointer<DragEnd>>::target_insert(ProcessaFimDragging),
                 SpriteBundle {
                     texture: carta_img.clone(),
-                    transform: Transform::from_xyz(-100., 0., 1.).with_scale(Vec3::splat(0.5)),
+                    transform: Transform::from_xyz(-100., 0., 1.).with_scale(Vec3::splat(1.0)),
                     ..Default::default()
                 },
             ))

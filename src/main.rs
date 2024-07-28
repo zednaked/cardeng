@@ -731,7 +731,10 @@ fn fim_dragging(
         (Without<Slot>, With<Carta>),
     >,
 
-    mut q_camera: Query<(&mut Transform, &Camera2d), (Without<Carta>, With<Camera2d>)>,
+    mut q_camera: Query<
+        (&mut Transform, &mut Camera2d, &mut OrthographicProjection),
+        (Without<Carta>, With<Camera2d>),
+    >,
     mut asset_server: Res<AssetServer>,
     mut jogador: ResMut<config>,
     mut query_slots: Query<(Entity, &mut Slot, &Transform), (With<Slot>, Without<Camera2d>)>,
@@ -943,8 +946,9 @@ fn fim_dragging(
         transform_carta.translation.x = ancora_carta.x;
         transform_carta.translation.y = ancora_carta.y;
         //move a camera o suficiente para caber as novas cartas spawnadas
-        for (mut transform, _) in q_camera.iter_mut() {
+        for (mut transform, _, mut op) in q_camera.iter_mut() {
             transform.translation.y += 250.;
+            op.scale = 1.4;
         }
 
         ew_atualiza_slot.send(e_atualiza_slot);
@@ -1147,11 +1151,14 @@ fn resetar_jogo(
     mut q_texto_jogador: Query<(Entity, &Text), Without<Status>>,
     mut q_deck: Query<(Entity, &Deck)>,
     mut config: ResMut<config>,
+    mut q_camera: Query<(&mut OrthographicProjection), (Without<Carta>, With<Camera2d>)>,
     //  mut ew_monta_jogo: EventWriter<e_monta_jogo>,
     //    mut world: World,
 ) {
     config.deck = Deck::default();
-
+    for mut op in q_camera.iter_mut() {
+        op.scale = 1.3;
+    }
     for (entity, slot) in q_slots.iter() {
         commands.entity(entity).despawn_recursive();
     }

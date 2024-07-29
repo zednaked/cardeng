@@ -7,6 +7,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_mod_picking::prelude::*;
+use lens::TransformPositionLens;
 use rand::seq::SliceRandom;
 //use serde::Deserialize;
 use serde::{Deserialize, Serialize};
@@ -17,9 +18,13 @@ use reqwest::blocking::Client;
 use serde_json::from_str;
 use std::error::Error;
 
+use bevy_tweening::*;
+use std::time::Duration;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(TweeningPlugin)
         .insert_resource(Time::<Fixed>::from_seconds(0.25))
         .insert_resource(config {
             deck: Deck::default(),
@@ -39,6 +44,7 @@ fn main() {
                 .chain()
                 .run_if(on_event::<e_resetar_jogo>()),
         )
+        // .add_systems(Update, posiciona_ui)
         //        .add_systems(Update, spawna_carta.run_if(on_event::<e_spawnar_carta>()))
         .add_systems(Update, atualiza_slot.run_if(on_event::<e_atualiza_slot>()))
         .add_systems(Update, atualiza_status.run_if(on_event::<e_envia_status>()))
@@ -51,13 +57,45 @@ fn main() {
         .run();
 }
 
+//a funcao abaixo ira manter o status itens no mesmo lugar em relacao a camera
+//ela ira rodar a cada frame
+
+fn posiciona_ui(
+    mut q_camera: Query<
+        (&Transform, &OrthographicProjection, &Camera2d),
+        (With<Camera2d>, Without<EfeitosInventario>, Without<Status>),
+    >,
+    mut q_texto_status: Query<
+        (&mut Transform, &Status),
+        (With<Status>, Without<EfeitosInventario>),
+    >,
+
+    //  mut q_texto_jogador: Query<(&Transform, &LabelJogador)>,
+    mut q_efeitos_inventario: Query<
+        (&mut Transform, &EfeitosInventario),
+        (With<EfeitosInventario>, Without<Status>),
+    >,
+) {
+    for (transform_camera, _, _) in q_camera.iter_mut() {
+        for (mut transform, _) in q_texto_status.iter_mut() {
+            transform.translation.x = transform_camera.translation.x - 300.;
+            transform.translation.y = transform_camera.translation.y + 200.;
+        }
+        for (mut transform, _) in q_efeitos_inventario.iter_mut() {
+            transform.translation.x = transform_camera.translation.x + 200.;
+            transform.translation.y = transform_camera.translation.y + 200.;
+        }
+    }
+}
+
 #[derive(Debug, Component, Clone)]
 struct LabelJogador;
 
 fn atualiza_jogador(
     mut events: EventReader<e_atualiza_jogador>,
     mut jogador: ResMut<config>,
-    mut q_texto_jogador: Query<&mut Text, With<LabelJogador>>,
+    mut q_efeitos_inventario: Query<(&mut Transform, &mut Text), With<EfeitosInventario>>,
+    mut q_texto_jogador: Query<&mut Text, (With<LabelJogador>, Without<EfeitosInventario>)>,
 ) {
     for event in events.read() {
         match event.tipo {
@@ -67,6 +105,11 @@ fn atualiza_jogador(
             TipoAtualizacao::sobe_level => {
                 jogador.jogador.subir_level();
             }
+        }
+        for (mut transform, mut texto) in q_efeitos_inventario.iter_mut() {
+            transform.translation.y = 400.;
+            transform.translation.x = 200.;
+            //   texto.sections[0].value = format!("{}", event.valor);
         }
 
         for mut texto in q_texto_jogador.iter_mut() {
@@ -502,6 +545,7 @@ impl Slot {
 fn atualiza_slot(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut config: ResMut<config>,
     mut query_slot: Query<(Entity, &mut Slot, &Transform, &Atualizar)>,
     //    mut query_deck: Query<(Entity, &mut Deck)>,
     mut query_carta: Query<(Entity, &Carta)>,
@@ -509,8 +553,21 @@ fn atualiza_slot(
     for (en_slot, mut slot, transform_slot, _) in query_slot.iter_mut() {
         //      for (_, mut deck) in query_deck.iter_mut() {
         //let carta = deck.get_primeira_carta();
-        let carta = slot.carta.clone();
+        let index_carta = config.deck.level;
 
+        let carta = slot.carta.clone();
+        let tween_carta_deck_para_slot = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_millis(600),
+            TransformPositionLens {
+                start: Vec3::new(-200., 0., 0.),
+                end: Vec3::new(
+                    transform_slot.translation.x,
+                    transform_slot.translation.y,
+                    index_carta as f32,
+                ),
+            },
+        );
         let cor: Color = match carta.tipo {
             TipoCarta::Vazio => Srgba::new(0.1, 0.2, 0.4, 1.0).into(),
             TipoCarta::Escadas => Srgba::new(0.1, 0.1, 0.2, 1.0).into(),
@@ -535,6 +592,7 @@ fn atualiza_slot(
 
         let carta_id = commands
             .spawn((
+                Animator::new(tween_carta_deck_para_slot),
                 Ancora {
                     x: transform_slot.translation.x,
                     y: transform_slot.translation.y,
@@ -730,9 +788,15 @@ fn fim_dragging(
         ),
         (Without<Slot>, With<Carta>),
     >,
-
+    mut q_texto_status: Query<Entity, With<Status>>,
+    mut q_texto_inventario: Query<Entity, With<EfeitosInventario>>,
     mut q_camera: Query<
-        (&mut Transform, &mut Camera2d, &mut OrthographicProjection),
+        (
+            Entity,
+            &mut Transform,
+            &mut Camera2d,
+            &mut OrthographicProjection,
+        ),
         (Without<Carta>, With<Camera2d>),
     >,
     mut asset_server: Res<AssetServer>,
@@ -943,12 +1007,41 @@ fn fim_dragging(
         }
         //        jogador.jogador.level += 1;
         //manda a carta pra ancora dela
-        transform_carta.translation.x = ancora_carta.x;
-        transform_carta.translation.y = ancora_carta.y;
+        let tween_carta_retorna_ancora = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_millis(400),
+            TransformPositionLens {
+                start: transform_carta.translation,
+                end: Vec3::new(ancora_carta.x, ancora_carta.y, 8.),
+            },
+        );
+        commands
+            .entity(entity)
+            .insert(Animator::new(tween_carta_retorna_ancora));
+        // transform_carta.translation.x = ancora_carta.x;
+        // transform_carta.translation.y = ancora_carta.y;
         //move a camera o suficiente para caber as novas cartas spawnadas
-        for (mut transform, _, mut op) in q_camera.iter_mut() {
-            transform.translation.y += 250.;
+        for (entidade_camera, mut transform, _, mut op) in q_camera.iter_mut() {
+            let tween_camera_sobe = Tween::new(
+                EaseFunction::QuadraticInOut,
+                Duration::from_millis(500),
+                TransformPositionLens {
+                    start: transform.translation,
+                    end: Vec3::new(transform.translation.x, transform.translation.y + 250., 0.),
+                },
+            );
+
+            //transform.translation.y += 250.;
+            commands
+                .entity(entidade_camera)
+                .insert(Animator::new(tween_camera_sobe));
+
             op.scale = 1.4;
+        }
+        for (entidade_texto_status, _) in q_texto_status.iter() {
+            commands
+                .entity(entidade_texto_status)
+                .insert(Transform::from_xyz(0., 0., 1.));
         }
 
         ew_atualiza_slot.send(e_atualiza_slot);
@@ -1024,6 +1117,9 @@ fn montar_jogo(
             });
             slot.set_level(ii);
             slot.posicao = i - 1; //esta começando do 1
+                                  //tween que faz as cartas irem da poscao do deck ate a posicao do slot que ela ficara
+                                  //no tabuleiro
+
             commands.spawn((
                 //       PickableBundle::default(),
                 slot.clone(),
@@ -1063,10 +1159,18 @@ fn montar_jogo(
     ));
 
     //    ew_spawna_carta.send(e_spawnar_carta);
-
+    let tween_heroi_deck_para_slot = Tween::new(
+        EaseFunction::QuadraticInOut,
+        Duration::from_millis(600),
+        TransformPositionLens {
+            start: Vec3::new(-200., 0., 0.),
+            end: Vec3::new(80., -195., 9.),
+        },
+    );
     let carta_img: Handle<Image> = asset_server.load("carta-heroi.png");
     let carta_id = commands
         .spawn((
+            Animator::new(tween_heroi_deck_para_slot),
             Carta {
                 id: 666,
                 nome: "Heroi".to_string(),
@@ -1148,7 +1252,7 @@ fn resetar_jogo(
     mut commands: Commands,
     mut q_slots: Query<(Entity, &Slot)>,
     mut q_cartas: Query<(Entity, &Carta)>,
-    mut q_texto_jogador: Query<(Entity, &Text), Without<Status>>,
+    mut q_texto_jogador: Query<(Entity, &Text), (Without<Status>, Without<EfeitosInventario>)>,
     mut q_deck: Query<(Entity, &Deck)>,
     mut config: ResMut<config>,
     mut q_camera: Query<(&mut OrthographicProjection), (Without<Carta>, With<Camera2d>)>,
@@ -1176,15 +1280,59 @@ fn resetar_jogo(
     // ew_monta_jogo.send(e_monta_jogo);
 }
 
+#[derive(Debug, Component, Clone)]
+struct EfeitosInventario {
+    efeitos: Vec<String>,
+}
+
 fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo>) {
     commands.spawn(Camera2dBundle::default());
 
     let mut status = commands.spawn((
-        TextBundle::from("Status: "),
+        Text2dBundle {
+            text: Text {
+                sections: vec![TextSection {
+                    value: "Status :".to_string(),
+                    style: TextStyle {
+                        //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        font_size: 28.0,
+                        color: Color::WHITE,
+                        ..Default::default()
+                    },
+                }],
+                ..Default::default()
+            },
+            transform: Transform::from_xyz(-540., 281., 11.),
+            ..Default::default()
+        },
         Status,
         //    Transform::from_xyz(300., 0., 1.),
     ));
-    status.insert(Transform::from_xyz(300., 0., 1.));
+    // status.insert(Transform::from_xyz(300., 0., 1.));
+
+    let mut efeitos_inventario = commands.spawn((
+        Text2dBundle {
+            text: Text {
+                sections: vec![TextSection {
+                    value: "Inventario/Efeitos".to_string(),
+                    style: TextStyle {
+                        //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        font_size: 28.0,
+                        color: Color::WHITE,
+                        ..Default::default()
+                    },
+                }],
+                ..Default::default()
+            },
+            transform: Transform::from_xyz(-448., 181., 11.),
+            ..Default::default()
+        },
+        EfeitosInventario {
+            efeitos: Vec::new(),
+        },
+    ));
+    //efeitos_inventario.insert(Transform::from_xyz(300., 500., 1.));
+
     ew_resetar_jogo.send(e_resetar_jogo);
 }
 

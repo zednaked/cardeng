@@ -1,3 +1,15 @@
+#![allow(non_snake_case)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(dead_code)]
+#![allow(unused_parens)]
+#![allow(unused_variables)]
+#![allow(non_camel_case_types)]
+#![allow(unreachable_patterns)]
+#![allow(for_loops_over_fallibles)]
+#![allow(unused_imports)]
+
+
 use bevy::{
     ecs::{
         query::{QueryData, QueryFilter},
@@ -44,7 +56,6 @@ fn main() {
                 .chain()
                 .run_if(on_event::<e_resetar_jogo>()),
         )
-        // .add_systems(Update, posiciona_ui)
         //        .add_systems(Update, spawna_carta.run_if(on_event::<e_spawnar_carta>()))
         .add_systems(Update, atualiza_slot.run_if(on_event::<e_atualiza_slot>()))
         .add_systems(Update, atualiza_status.run_if(on_event::<e_envia_status>()))
@@ -55,37 +66,6 @@ fn main() {
         .add_systems(Update, fim_dragging)
         .add_systems(Startup, setup)
         .run();
-}
-
-//a funcao abaixo ira manter o status itens no mesmo lugar em relacao a camera
-//ela ira rodar a cada frame
-
-fn posiciona_ui(
-    mut q_camera: Query<
-        (&Transform, &OrthographicProjection, &Camera2d),
-        (With<Camera2d>, Without<EfeitosInventario>, Without<Status>),
-    >,
-    mut q_texto_status: Query<
-        (&mut Transform, &Status),
-        (With<Status>, Without<EfeitosInventario>),
-    >,
-
-    //  mut q_texto_jogador: Query<(&Transform, &LabelJogador)>,
-    mut q_efeitos_inventario: Query<
-        (&mut Transform, &EfeitosInventario),
-        (With<EfeitosInventario>, Without<Status>),
-    >,
-) {
-    for (transform_camera, _, _) in q_camera.iter_mut() {
-        for (mut transform, _) in q_texto_status.iter_mut() {
-            transform.translation.x = transform_camera.translation.x - 300.;
-            transform.translation.y = transform_camera.translation.y + 200.;
-        }
-        for (mut transform, _) in q_efeitos_inventario.iter_mut() {
-            transform.translation.x = transform_camera.translation.x + 200.;
-            transform.translation.y = transform_camera.translation.y + 200.;
-        }
-    }
 }
 
 #[derive(Debug, Component, Clone)]
@@ -107,8 +87,6 @@ fn atualiza_jogador(
             }
         }
         for (mut transform, mut texto) in q_efeitos_inventario.iter_mut() {
-            transform.translation.y = 400.;
-            transform.translation.x = 200.;
             //   texto.sections[0].value = format!("{}", event.valor);
         }
 
@@ -558,7 +536,7 @@ fn atualiza_slot(
         let carta = slot.carta.clone();
         let tween_carta_deck_para_slot = Tween::new(
             EaseFunction::QuadraticInOut,
-            Duration::from_millis(600),
+            Duration::from_millis(300),
             TransformPositionLens {
                 start: Vec3::new(-200., 0., 0.),
                 end: Vec3::new(
@@ -1038,10 +1016,10 @@ fn fim_dragging(
 
             op.scale = 1.4;
         }
-        for (entidade_texto_status, _) in q_texto_status.iter() {
-            commands
-                .entity(entidade_texto_status)
-                .insert(Transform::from_xyz(0., 0., 1.));
+        for entidade_texto_status in q_texto_status.iter() {
+//            commands
+  //              .entity(entidade_texto_status)
+    //            .insert(Transform::from_xyz(0., 0., 1.));
         }
 
         ew_atualiza_slot.send(e_atualiza_slot);
@@ -1286,9 +1264,11 @@ struct EfeitosInventario {
 }
 
 fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo>) {
-    commands.spawn(Camera2dBundle::default());
+    
 
-    let mut status = commands.spawn((
+    let mut camera = commands.spawn(Camera2dBundle::default()).id();
+
+    let status = commands.spawn((
         Text2dBundle {
             text: Text {
                 sections: vec![TextSection {
@@ -1307,10 +1287,10 @@ fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo
         },
         Status,
         //    Transform::from_xyz(300., 0., 1.),
-    ));
+    )).id();
     // status.insert(Transform::from_xyz(300., 0., 1.));
 
-    let mut efeitos_inventario = commands.spawn((
+    let efeitos_inventario = commands.spawn((
         Text2dBundle {
             text: Text {
                 sections: vec![TextSection {
@@ -1324,16 +1304,19 @@ fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo
                 }],
                 ..Default::default()
             },
-            transform: Transform::from_xyz(-448., 181., 11.),
+            transform: Transform::from_xyz(-540., 181., 11.),
             ..Default::default()
         },
         EfeitosInventario {
             efeitos: Vec::new(),
         },
-    ));
-    //efeitos_inventario.insert(Transform::from_xyz(300., 500., 1.));
+    )).id();
 
-    ew_resetar_jogo.send(e_resetar_jogo);
+
+    //efeitos_inventario.insert(Transform::from_xyz(300., 500., 1.));
+    commands.entity(camera).push_children(&[status]);
+    commands.entity(camera).push_children(&[efeitos_inventario]);
+        ew_resetar_jogo.send(e_resetar_jogo);
 }
 
 fn spawna_carta(

@@ -9,7 +9,6 @@
 #![allow(for_loops_over_fallibles)]
 #![allow(unused_imports)]
 
-
 use bevy::{
     ecs::{
         query::{QueryData, QueryFilter},
@@ -41,6 +40,7 @@ fn main() {
         .insert_resource(config {
             deck: Deck::default(),
             jogador: jogador::new(),
+            efeitos_inventario: EfeitosInventario::default(),
         })
         //      .add_event::<e_spawnar_carta>()
         .add_event::<e_monta_jogo>()
@@ -70,12 +70,32 @@ fn main() {
 
 #[derive(Debug, Component, Clone)]
 struct LabelJogador;
+struct EfeitoInventario {
+    nome: String,
+    buff: i32,
+    debuff: i32,
+}
+
+struct EfeitosInventario {
+    efeitos: Vec<EfeitoInventario>,
+}
+impl Default for EfeitosInventario {
+    fn default() -> Self {
+        EfeitosInventario {
+            efeitos: vec![EfeitoInventario {
+                nome: "Espada".to_string(),
+                buff: 1,
+                debuff: 0,
+            }],
+        }
+    }
+}
 
 fn atualiza_jogador(
     mut events: EventReader<e_atualiza_jogador>,
     mut jogador: ResMut<config>,
-    mut q_efeitos_inventario: Query<(&mut Transform, &mut Text), With<EfeitosInventario>>,
-    mut q_texto_jogador: Query<&mut Text, (With<LabelJogador>, Without<EfeitosInventario>)>,
+    mut q_efeitos_inventario: Query<(&mut Transform, &mut Text), With<UIEfeitosInventario>>,
+    mut q_texto_jogador: Query<&mut Text, (With<LabelJogador>, Without<UIEfeitosInventario>)>,
 ) {
     for event in events.read() {
         match event.tipo {
@@ -87,7 +107,15 @@ fn atualiza_jogador(
             }
         }
         for (mut transform, mut texto) in q_efeitos_inventario.iter_mut() {
+            let mut efeitos_inventario = "Efeitos do Inventario :\n".to_string();
+
+            for efeito in jogador.efeitos_inventario.efeitos.iter() {
+                efeitos_inventario = format!("{}\n{}", efeitos_inventario, efeito.nome);
+            }
+            texto.sections[0].value = efeitos_inventario;
+
             //   texto.sections[0].value = format!("{}", event.valor);
+            //
         }
 
         for mut texto in q_texto_jogador.iter_mut() {
@@ -180,6 +208,7 @@ struct e_atualiza_jogador {
 struct config {
     pub deck: Deck,
     pub jogador: jogador,
+    pub efeitos_inventario: EfeitosInventario,
 }
 
 #[derive(Debug, Component, Clone)]
@@ -767,7 +796,7 @@ fn fim_dragging(
         (Without<Slot>, With<Carta>),
     >,
     mut q_texto_status: Query<Entity, With<Status>>,
-    mut q_texto_inventario: Query<Entity, With<EfeitosInventario>>,
+    mut q_texto_inventario: Query<Entity, With<UIEfeitosInventario>>,
     mut q_camera: Query<
         (
             Entity,
@@ -1017,9 +1046,9 @@ fn fim_dragging(
             op.scale = 1.4;
         }
         for entidade_texto_status in q_texto_status.iter() {
-//            commands
-  //              .entity(entidade_texto_status)
-    //            .insert(Transform::from_xyz(0., 0., 1.));
+            //            commands
+            //              .entity(entidade_texto_status)
+            //            .insert(Transform::from_xyz(0., 0., 1.));
         }
 
         ew_atualiza_slot.send(e_atualiza_slot);
@@ -1230,7 +1259,7 @@ fn resetar_jogo(
     mut commands: Commands,
     mut q_slots: Query<(Entity, &Slot)>,
     mut q_cartas: Query<(Entity, &Carta)>,
-    mut q_texto_jogador: Query<(Entity, &Text), (Without<Status>, Without<EfeitosInventario>)>,
+    mut q_texto_jogador: Query<(Entity, &Text), (Without<Status>, Without<UIEfeitosInventario>)>,
     mut q_deck: Query<(Entity, &Deck)>,
     mut config: ResMut<config>,
     mut q_camera: Query<(&mut OrthographicProjection), (Without<Carta>, With<Camera2d>)>,
@@ -1259,64 +1288,61 @@ fn resetar_jogo(
 }
 
 #[derive(Debug, Component, Clone)]
-struct EfeitosInventario {
-    efeitos: Vec<String>,
-}
+struct UIEfeitosInventario;
 
 fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo>) {
-    
-
     let mut camera = commands.spawn(Camera2dBundle::default()).id();
 
-    let status = commands.spawn((
-        Text2dBundle {
-            text: Text {
-                sections: vec![TextSection {
-                    value: "Status :".to_string(),
-                    style: TextStyle {
-                        //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 28.0,
-                        color: Color::WHITE,
-                        ..Default::default()
-                    },
-                }],
+    let status = commands
+        .spawn((
+            Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "Status :".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 28.0,
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                    }],
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(-540., 281., 11.),
                 ..Default::default()
             },
-            transform: Transform::from_xyz(-540., 281., 11.),
-            ..Default::default()
-        },
-        Status,
-        //    Transform::from_xyz(300., 0., 1.),
-    )).id();
+            Status,
+            //    Transform::from_xyz(300., 0., 1.),
+        ))
+        .id();
     // status.insert(Transform::from_xyz(300., 0., 1.));
 
-    let efeitos_inventario = commands.spawn((
-        Text2dBundle {
-            text: Text {
-                sections: vec![TextSection {
-                    value: "Inventario/Efeitos".to_string(),
-                    style: TextStyle {
-                        //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 28.0,
-                        color: Color::WHITE,
-                        ..Default::default()
-                    },
-                }],
+    let efeitos_inventario = commands
+        .spawn((
+            Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "Inventario/Efeitos".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 28.0,
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                    }],
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(-540., 81., 11.),
                 ..Default::default()
             },
-            transform: Transform::from_xyz(-540., 181., 11.),
-            ..Default::default()
-        },
-        EfeitosInventario {
-            efeitos: Vec::new(),
-        },
-    )).id();
-
+            UIEfeitosInventario,
+        ))
+        .id();
 
     //efeitos_inventario.insert(Transform::from_xyz(300., 500., 1.));
     commands.entity(camera).push_children(&[status]);
     commands.entity(camera).push_children(&[efeitos_inventario]);
-        ew_resetar_jogo.send(e_resetar_jogo);
+    ew_resetar_jogo.send(e_resetar_jogo);
 }
 
 fn spawna_carta(

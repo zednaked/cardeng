@@ -110,7 +110,8 @@ fn atualiza_jogador(
             let mut efeitos_inventario = "Efeitos do Inventario :\n".to_string();
 
             for efeito in jogador.efeitos_inventario.efeitos.iter() {
-                efeitos_inventario = format!("{}\n{}", efeitos_inventario, efeito.nome);
+                efeitos_inventario =
+                    format!("{}\n{}:{}", efeitos_inventario, efeito.nome, efeito.buff);
             }
             texto.sections[0].value = efeitos_inventario;
 
@@ -939,6 +940,12 @@ fn fim_dragging(
                         if let Some(bonus_vida) = slot.carta.bonus_vida {
                             jogador.jogador.vida_atual += bonus_vida;
                         }
+                        jogador.efeitos_inventario.efeitos.push(EfeitoInventario {
+                            nome: slot.carta.nome.clone(),
+                            buff: slot.carta.bonus_ataque.unwrap_or_default(),
+                            debuff: 0,
+                            // descricao: slot.carta.descricao.clone(),
+                        });
                     }
                     TipoCarta::Artefato => {
                         ew_envia_status
@@ -1043,7 +1050,7 @@ fn fim_dragging(
                 .entity(entidade_camera)
                 .insert(Animator::new(tween_camera_sobe));
 
-            op.scale = 1.6;
+            //    op.scale = 1.5;
         }
         for entidade_texto_status in q_texto_status.iter() {
             //            commands
@@ -1268,7 +1275,7 @@ fn resetar_jogo(
 ) {
     config.deck = Deck::default();
     for mut op in q_camera.iter_mut() {
-        op.scale = 1.6;
+        op.scale = 1.2;
     }
     for (entity, slot) in q_slots.iter() {
         commands.entity(entity).despawn_recursive();

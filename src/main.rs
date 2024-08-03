@@ -1043,7 +1043,7 @@ fn fim_dragging(
                 .entity(entidade_camera)
                 .insert(Animator::new(tween_camera_sobe));
 
-            op.scale = 1.4;
+            op.scale = 1.6;
         }
         for entidade_texto_status in q_texto_status.iter() {
             //            commands
@@ -1268,7 +1268,7 @@ fn resetar_jogo(
 ) {
     config.deck = Deck::default();
     for mut op in q_camera.iter_mut() {
-        op.scale = 1.3;
+        op.scale = 1.6;
     }
     for (entity, slot) in q_slots.iter() {
         commands.entity(entity).despawn_recursive();
@@ -1332,7 +1332,7 @@ fn setup(mut commands: Commands, mut ew_resetar_jogo: EventWriter<e_resetar_jogo
                     }],
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(-540., 81., 11.),
+                transform: Transform::from_xyz(-540., 111., 11.),
                 ..Default::default()
             },
             UIEfeitosInventario,

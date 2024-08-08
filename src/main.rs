@@ -95,7 +95,10 @@ fn atualiza_jogador(
     mut events: EventReader<e_atualiza_jogador>,
     mut jogador: ResMut<config>,
     mut q_efeitos_inventario: Query<(&mut Transform, &mut Text), With<UIEfeitosInventario>>,
-    mut q_texto_jogador: Query<&mut Text, (With<LabelJogador>, Without<UIEfeitosInventario>)>,
+    mut q_texto_jogador: Query<
+        (&mut Text, &UiCartaJogador),
+        (With<LabelJogador>, Without<UIEfeitosInventario>),
+    >,
 ) {
     for event in events.read() {
         match event.tipo {
@@ -119,8 +122,29 @@ fn atualiza_jogador(
             //
         }
 
-        for mut texto in q_texto_jogador.iter_mut() {
-            texto.sections[0].value = format!("{}", jogador.jogador.vida_atual);
+        for (mut texto, ui_carta_jogador) in q_texto_jogador.iter_mut() {
+            match ui_carta_jogador.tipo {
+                TipoUiCartaJogador::Ataque => {
+                    texto.sections[0].value = format!("{}", jogador.jogador.ataque);
+                }
+                TipoUiCartaJogador::Defesa => {
+                    texto.sections[0].value = format!("{}", jogador.jogador.defesa);
+                }
+                TipoUiCartaJogador::Ouro => {
+                    texto.sections[0].value = format!("{}", jogador.jogador.ouro);
+                }
+                TipoUiCartaJogador::Level => {
+                    texto.sections[0].value = format!("{}", jogador.jogador.level);
+                }
+                TipoUiCartaJogador::Xp => {
+                    texto.sections[0].value = format!("{}", jogador.jogador.xp);
+                }
+                TipoUiCartaJogador::Vida => {
+                    texto.sections[0].value = format!("{}", jogador.jogador.vida_atual);
+                }
+            }
+
+            //texto.sections[0].value = format!("{}", jogador.jogador.vida_atual);
         }
     }
 }
@@ -1240,7 +1264,117 @@ fn montar_jogo(
             },
         ))
         .id();
+
+    let texto_heroi_ataque = commands
+        .spawn((
+            UiCartaJogador {
+                tipo: TipoUiCartaJogador::Ataque,
+            },
+            LabelJogador,
+            Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "0".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 38.0,
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                    }],
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(-48., 8., 1.),
+                ..Default::default()
+            },
+        ))
+        .id();
+
+    let texto_heroi_defesa = commands
+        .spawn((
+            UiCartaJogador {
+                tipo: TipoUiCartaJogador::Defesa,
+            },
+            LabelJogador,
+            Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "0".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 38.0,
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                    }],
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(-48., 44., 1.),
+                ..Default::default()
+            },
+        ))
+        .id();
+
+    let texto_heroi_level = commands
+        .spawn((
+            UiCartaJogador {
+                tipo: TipoUiCartaJogador::Level,
+            },
+            LabelJogador,
+            Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "0".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 38.0,
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                    }],
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(-48., -88., 1.),
+                ..Default::default()
+            },
+        ))
+        .id();
+    let texto_heroi_ouro = commands
+        .spawn((
+            UiCartaJogador {
+                tipo: TipoUiCartaJogador::Ouro,
+            },
+            LabelJogador,
+            Text2dBundle {
+                text: Text {
+                    sections: vec![TextSection {
+                        value: "0".to_string(),
+                        style: TextStyle {
+                            //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 38.0,
+                            color: Color::WHITE,
+                            ..Default::default()
+                        },
+                    }],
+                    ..Default::default()
+                },
+                transform: Transform::from_xyz(40., -88., 1.),
+                ..Default::default()
+            },
+        ))
+        .id();
+
+    commands
+        .entity(carta_id)
+        .push_children(&[texto_heroi_level]);
+    commands.entity(carta_id).push_children(&[texto_heroi_ouro]);
+    commands
+        .entity(carta_id)
+        .push_children(&[texto_heroi_ataque]);
     commands.entity(carta_id).push_children(&[texto_heroi_vida]);
+    commands
+        .entity(carta_id)
+        .push_children(&[texto_heroi_defesa]);
 
     res_deck.deck = deck.clone();
     //    ew_atualiza_slot.send(e_atualiza_slot);

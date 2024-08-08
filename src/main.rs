@@ -964,12 +964,23 @@ fn fim_dragging(
                         if let Some(bonus_vida) = slot.carta.bonus_vida {
                             jogador.jogador.vida_atual += bonus_vida;
                         }
-                        jogador.efeitos_inventario.efeitos.push(EfeitoInventario {
-                            nome: slot.carta.nome.clone(),
-                            buff: slot.carta.bonus_ataque.unwrap_or_default(),
-                            debuff: 0,
-                            // descricao: slot.carta.descricao.clone(),
-                        });
+                        //verifica se existe um equipamento com esse nome e substitui por o novo
+                        let mut existe = false;
+                        for efeito in jogador.efeitos_inventario.efeitos.iter_mut() {
+                            if efeito.nome == slot.carta.nome {
+                                efeito.buff = slot.carta.bonus_ataque.unwrap_or_default();
+                                efeito.debuff = slot.carta.bonus_defesa.unwrap_or_default();
+                                existe = true;
+                            }
+                        }
+                        if !existe {
+                            jogador.efeitos_inventario.efeitos.push(EfeitoInventario {
+                                nome: slot.carta.nome.clone(),
+                                buff: slot.carta.bonus_ataque.unwrap_or_default(),
+                                debuff: slot.carta.bonus_defesa.unwrap_or_default(),
+                                // descricao: slot.carta.descricao.clone(),
+                            });
+                        }
                     }
                     TipoCarta::Artefato => {
                         ew_envia_status

@@ -90,10 +90,15 @@ impl Default for EfeitosInventario {
         }
     }
 }
-
+//se o jogador estiver com um inimigo na frente dele , na mesma posiçao mas no level a frente dele,
+//o inimigo ataco o heroi e morre em seguida
 fn atualiza_jogador(
+    mut commands: Commands,
     mut events: EventReader<e_atualiza_jogador>,
     mut jogador: ResMut<config>,
+
+    mut q_slots: Query<(Entity, &mut Slot), (Without<Atualizar>)>,
+
     mut q_efeitos_inventario: Query<(&mut Transform, &mut Text), With<UIEfeitosInventario>>,
     mut q_texto_jogador: Query<
         (&mut Text, &UiCartaJogador),
@@ -108,6 +113,7 @@ fn atualiza_jogador(
             TipoAtualizacao::sobe_level => {
                 jogador.jogador.subir_level();
             }
+            _ => {}
         }
         for (mut transform, mut texto) in q_efeitos_inventario.iter_mut() {
             let mut efeitos_inventario = "Efeitos do Inventario :\n".to_string();
@@ -145,6 +151,19 @@ fn atualiza_jogador(
             }
 
             //texto.sections[0].value = format!("{}", jogador.jogador.vida_atual);
+        }
+
+        //verifica se a carta no level a frente, na mesma posiçao que o heroi for um inimigo, nesse
+        //caso, os dois batalham e o inimigo morre em seguida
+        for (_, mut slot) in q_slots.iter_mut() {
+            if slot.level == jogador.jogador.level + 1 {
+                if slot.posicao == jogador.jogador.posicao {
+                    info!("{:?}", slot.carta.tipo);
+                    if slot.carta.tipo == TipoCarta::Inimigo {
+                        info!("inimigo iniciativa!");
+                    }
+                }
+            }
         }
     }
 }
@@ -221,6 +240,7 @@ impl jogador {
 enum TipoAtualizacao {
     tomar_dano,
     sobe_level,
+    atualiza,
 }
 
 #[derive(Event)]
@@ -847,8 +867,8 @@ fn fim_dragging(
         commands.entity(entity).remove::<ProcessaFimDragging>();
         commands.entity(entity).remove::<Dragging>();
         for (entity_slot, mut slot, transform_slot) in query_slots.iter_mut() {
-            if (transform_carta.translation.x - transform_slot.translation.x).abs() < 150.
-                && (transform_carta.translation.y - transform_slot.translation.y).abs() < 150.
+            if (transform_carta.translation.x - transform_slot.translation.x).abs() < 50.
+                && (transform_carta.translation.y - transform_slot.translation.y).abs() < 50.
             {
                 if slot.level > jogador.jogador.level {
                     ew_envia_status
@@ -1052,6 +1072,32 @@ fn fim_dragging(
                 ancora_carta.y = transform_slot.translation.y;
                 jogador.deck = deck.clone();
                 commands.entity(entity_slot).insert(slot.clone());
+                for (entidade_camera, mut transform, _, mut op) in q_camera.iter_mut() {
+                    let tween_camera_sobe = Tween::new(
+                        EaseFunction::QuadraticInOut,
+                        Duration::from_millis(500),
+                        TransformPositionLens {
+                            start: transform.translation,
+                            end: Vec3::new(
+                                transform.translation.x,
+                                transform.translation.y + 250.,
+                                0.,
+                            ),
+                        },
+                    );
+
+                    //transform.translation.y += 250.;
+                    commands
+                        .entity(entidade_camera)
+                        .insert(Animator::new(tween_camera_sobe));
+
+                    //    op.scale = 1.5
+                    //    ;
+                    ew_atualiza_jogador.send(e_atualiza_jogador {
+                        tipo: TipoAtualizacao::sobe_level,
+                        valor: 1,
+                    });
+                }
             }
         }
         //        jogador.jogador.level += 1;
@@ -1067,37 +1113,8 @@ fn fim_dragging(
         commands
             .entity(entity)
             .insert(Animator::new(tween_carta_retorna_ancora));
-        // transform_carta.translation.x = ancora_carta.x;
-        // transform_carta.translation.y = ancora_carta.y;
-        //move a camera o suficiente para caber as novas cartas spawnadas
-        for (entidade_camera, mut transform, _, mut op) in q_camera.iter_mut() {
-            let tween_camera_sobe = Tween::new(
-                EaseFunction::QuadraticInOut,
-                Duration::from_millis(500),
-                TransformPositionLens {
-                    start: transform.translation,
-                    end: Vec3::new(transform.translation.x, transform.translation.y + 250., 0.),
-                },
-            );
-
-            //transform.translation.y += 250.;
-            commands
-                .entity(entidade_camera)
-                .insert(Animator::new(tween_camera_sobe));
-
-            //    op.scale = 1.5;
-        }
-        for entidade_texto_status in q_texto_status.iter() {
-            //            commands
-            //              .entity(entidade_texto_status)
-            //            .insert(Transform::from_xyz(0., 0., 1.));
-        }
 
         ew_atualiza_slot.send(e_atualiza_slot);
-        ew_atualiza_jogador.send(e_atualiza_jogador {
-            tipo: TipoAtualizacao::sobe_level,
-            valor: 1,
-        });
     }
 }
 
@@ -1113,6 +1130,7 @@ fn montar_jogo(
     mut commands: Commands,
     mut res_deck: ResMut<config>,
     mut asset_server: Res<AssetServer>,
+    mut ew_atualiza_jogador: EventWriter<e_atualiza_jogador>,
     mut q_camera: Query<(&mut Transform, &Camera2d), (Without<Carta>, With<Camera2d>)>,
 ) {
     res_deck.jogador.level = 0;
@@ -1134,7 +1152,10 @@ fn montar_jogo(
     for (mut transform, _) in q_camera.iter_mut() {
         transform.translation.y = 0.;
     }
-
+    ew_atualiza_jogador.send(e_atualiza_jogador {
+        tipo: TipoAtualizacao::atualiza,
+        valor: 0,
+    });
     commands.spawn((
         //        PickableBundle::default(),
         deck.clone(),
@@ -1288,14 +1309,14 @@ fn montar_jogo(
                         value: "0".to_string(),
                         style: TextStyle {
                             //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 38.0,
-                            color: Color::WHITE,
+                            font_size: 30.0,
+                            color: Color::BLACK,
                             ..Default::default()
                         },
                     }],
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(-48., 8., 1.),
+                transform: Transform::from_xyz(-38., 4., 1.),
                 ..Default::default()
             },
         ))
@@ -1313,7 +1334,7 @@ fn montar_jogo(
                         value: "0".to_string(),
                         style: TextStyle {
                             //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 38.0,
+                            font_size: 28.0,
                             color: Color::WHITE,
                             ..Default::default()
                         },
@@ -1338,14 +1359,14 @@ fn montar_jogo(
                         value: "0".to_string(),
                         style: TextStyle {
                             //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 38.0,
-                            color: Color::WHITE,
+                            font_size: 22.0,
+                            color: Color::BLACK,
                             ..Default::default()
                         },
                     }],
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(-48., -88., 1.),
+                transform: Transform::from_xyz(-20., -100., 1.),
                 ..Default::default()
             },
         ))
@@ -1362,14 +1383,14 @@ fn montar_jogo(
                         value: "0".to_string(),
                         style: TextStyle {
                             //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                            font_size: 38.0,
-                            color: Color::WHITE,
+                            font_size: 22.0,
+                            color: Color::BLACK,
                             ..Default::default()
                         },
                     }],
                     ..Default::default()
                 },
-                transform: Transform::from_xyz(40., -88., 1.),
+                transform: Transform::from_xyz(50., -100., 1.),
                 ..Default::default()
             },
         ))

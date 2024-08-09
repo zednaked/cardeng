@@ -174,13 +174,19 @@ fn atualiza_jogador(
                 if slot.posicao == jogador.jogador.posicao {
                     if slot.carta.tipo == TipoCarta::Inimigo {
                         let mut transform_offset = transform_slot.clone();
-                        transform_offset.translation.y += 20.;
+                        transform_offset.translation.y += 180.;
+                        transform_offset.translation.z = 21.;
                         let tween_inimigo_ataca = Tween::new(
-                            EaseFunction::QuadraticInOut,
-                            Duration::from_millis(200),
+                            EaseFunction::ElasticInOut,
+                            Duration::from_millis(1800),
                             TransformPositionLens {
-                                start: transform_slot.translation,
-                                end: Vec3::new(0., transform_slot.translation.y - 50., 21.),
+                                start: transform_offset.translation,
+
+                                end: Vec3::new(
+                                    transform_slot.translation.x,
+                                    transform_slot.translation.y - 50.,
+                                    21.,
+                                ),
                             },
                         )
                         .with_completed_event(666);

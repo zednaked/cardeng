@@ -11,6 +11,7 @@
 
 use bevy::{
     ecs::{
+        entity,
         query::{QueryData, QueryFilter},
         system::RunSystemOnce,
         world,
@@ -63,9 +64,19 @@ fn main() {
             Update,
             atualiza_jogador.run_if(on_event::<e_atualiza_jogador>()),
         )
+        .add_systems(Update, despawna)
         .add_systems(Update, fim_dragging)
         .add_systems(Startup, setup)
         .run();
+}
+
+fn despawna(mut reader: EventReader<TweenCompleted>, mut commands: Commands) {
+    for ev in reader.read() {
+        if ev.user_data == 666 {
+            commands.entity(ev.entity).despawn_recursive();
+            //            info!("Tween de ataque do inimigo completado!");
+        }
+    }
 }
 
 #[derive(Debug, Component, Clone)]
@@ -97,7 +108,10 @@ fn atualiza_jogador(
     mut events: EventReader<e_atualiza_jogador>,
     mut jogador: ResMut<config>,
 
-    mut q_slots: Query<(Entity, &mut Slot), (Without<Atualizar>)>,
+    mut q_slots: Query<
+        (Entity, &Transform, &mut Slot),
+        (Without<Atualizar>, Without<UIEfeitosInventario>),
+    >,
 
     mut q_efeitos_inventario: Query<(&mut Transform, &mut Text), With<UIEfeitosInventario>>,
     mut q_texto_jogador: Query<
@@ -155,11 +169,30 @@ fn atualiza_jogador(
 
         //verifica se a carta no level a frente, na mesma posiçao que o heroi for um inimigo, nesse
         //caso, os dois batalham e o inimigo morre em seguida
-        for (_, mut slot) in q_slots.iter_mut() {
-            if slot.level == jogador.jogador.level + 1 {
+        for (_, transform_slot, mut slot) in q_slots.iter_mut() {
+            if slot.level == jogador.jogador.level {
                 if slot.posicao == jogador.jogador.posicao {
-                    info!("{:?}", slot.carta.tipo);
                     if slot.carta.tipo == TipoCarta::Inimigo {
+                        let mut transform_offset = transform_slot.clone();
+                        transform_offset.translation.y += 20.;
+                        let tween_inimigo_ataca = Tween::new(
+                            EaseFunction::QuadraticInOut,
+                            Duration::from_millis(200),
+                            TransformPositionLens {
+                                start: transform_slot.translation,
+                                end: Vec3::new(0., transform_slot.translation.y - 50., 21.),
+                            },
+                        )
+                        .with_completed_event(666);
+
+                        jogador
+                            .jogador
+                            .tomar_dano(slot.carta.ataque.unwrap_or_default());
+                        commands
+                            .entity(slot.entidade_carta)
+                            .insert(Animator::new(tween_inimigo_ataca));
+                        slot.carta = Carta::default();
+                        slot.entidade_carta = Entity::PLACEHOLDER;
                         info!("inimigo iniciativa!");
                     }
                 }

@@ -385,7 +385,7 @@ impl Default for Carta {
             bonus_ataque: Some(0),
             bonus_defesa: Some(0),
             bonus_vida: Some(0),
-            tipo: TipoCarta::Inimigo,
+            tipo: TipoCarta::Vazio,
             valor: Some(0),
         }
     }
@@ -967,6 +967,7 @@ fn fim_dragging(
                                 }
 
                                 commands.entity(slot.entidade_carta).despawn_recursive();
+                                slot.carta = Carta::default();
                                 slot.entidade_carta = Entity::PLACEHOLDER;
                             }
                         }

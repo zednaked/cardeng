@@ -62,7 +62,9 @@ fn main() {
         .add_systems(Update, atualiza_status.run_if(on_event::<e_envia_status>()))
         .add_systems(
             Update,
-            atualiza_jogador.run_if(on_event::<e_atualiza_jogador>()),
+            (atualiza_slot, atualiza_status, atualiza_jogador)
+                .chain()
+                .run_if(on_event::<e_atualiza_jogador>()),
         )
         .add_systems(Update, despawna)
         .add_systems(Update, fim_dragging)
@@ -190,7 +192,7 @@ fn atualiza_jogador(
                             },
                         )
                         .with_completed_event(666);
-
+                        info!("{:?}", slot.entidade_carta);
                         jogador
                             .jogador
                             .tomar_dano(slot.carta.ataque.unwrap_or_default());

@@ -67,7 +67,7 @@ fn main() {
                 .run_if(on_event::<e_atualiza_jogador>()),
         )
         .add_systems(Update, despawna)
-        .add_systems(Update, fim_dragging)
+        .add_systems(Update, fim_dragging.after(atualiza_jogador))
         .add_systems(Startup, setup)
         .run();
 }
@@ -1123,9 +1123,7 @@ fn fim_dragging(
                             ),
                         },
                     );
-                    commands.entity(slot.entidade_carta).despawn_recursive();
-                    slot.carta = Carta::default();
-                    slot.entidade_carta = Entity::PLACEHOLDER;
+
                     //transform.translation.y += 250.;
                     commands
                         .entity(entidade_camera)
@@ -1133,14 +1131,23 @@ fn fim_dragging(
 
                     //    op.scale = 1.5
                     //    ;
-                    ew_atualiza_jogador.send(e_atualiza_jogador {
-                        tipo: TipoAtualizacao::sobe_level,
-                        valor: 1,
-                    });
                 }
+
+                //
+                //TODO:: ARRUMAR ISSO
+                commands.entity(slot.entidade_carta).despawn_recursive();
+                // jogador.jogador.level += 1;
+                slot.carta = Carta::default();
+                slot.entidade_carta = Entity::PLACEHOLDER;
             }
         }
-        //        jogador.jogador.level += 1;
+        ew_atualiza_jogador.send(e_atualiza_jogador {
+            tipo: TipoAtualizacao::atualiza,
+            valor: 0,
+        });
+
+        //   ew_atualiza_jogador.send(e_atualiza_jogador);
+        jogador.jogador.level += 1;
         //manda a carta pra ancora dela
         let tween_carta_retorna_ancora = Tween::new(
             EaseFunction::QuadraticInOut,

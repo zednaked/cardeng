@@ -895,7 +895,7 @@ fn fim_dragging(
     mut asset_server: Res<AssetServer>,
     mut jogador: ResMut<config>,
     mut query_slots: Query<(Entity, &mut Slot, &Transform), (With<Slot>, Without<Camera2d>)>,
-    mut query_cartas: Query<(Entity, &Carta), Without<ProcessaFimDragging>>,
+    mut query_cartas: Query<(Entity, &Carta), Without<Player>>,
     mut ew_envia_status: EventWriter<e_envia_status>,
     mut ew_atualiza_jogador: EventWriter<e_atualiza_jogador>,
     mut ew_atualiza_slot: EventWriter<e_atualiza_slot>,
@@ -967,10 +967,6 @@ fn fim_dragging(
                                     ew_resetar_jogo.send(e_resetar_jogo);
                                     return;
                                 }
-
-                                commands.entity(slot.entidade_carta).despawn_recursive();
-                                slot.carta = Carta::default();
-                                slot.entidade_carta = Entity::PLACEHOLDER;
                             }
                         }
                     }
@@ -985,7 +981,7 @@ fn fim_dragging(
                 deck.level += 1;
                 //muda a posicao do jogador no eixo horizontal
                 jogador.jogador.posicao = slot.posicao;
-
+                info!("{:?}", slot.carta);
                 match slot.carta.tipo {
                     TipoCarta::Escadas => {
                         ew_envia_status
@@ -1127,7 +1123,9 @@ fn fim_dragging(
                             ),
                         },
                     );
-
+                    commands.entity(slot.entidade_carta).despawn_recursive();
+                    slot.carta = Carta::default();
+                    slot.entidade_carta = Entity::PLACEHOLDER;
                     //transform.translation.y += 250.;
                     commands
                         .entity(entidade_camera)
@@ -1167,6 +1165,9 @@ struct e_resetar_jogo;
 
 #[derive(Event)]
 struct e_monta_jogo;
+
+#[derive(Debug, Component, Clone)]
+struct Player;
 
 fn montar_jogo(
     mut commands: Commands,
@@ -1282,6 +1283,7 @@ fn montar_jogo(
     let carta_img: Handle<Image> = asset_server.load("carta-heroi.png");
     let carta_id = commands
         .spawn((
+            Player,
             Animator::new(tween_heroi_deck_para_slot),
             Carta {
                 id: 666,

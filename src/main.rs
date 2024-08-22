@@ -62,12 +62,18 @@ fn main() {
         .add_systems(Update, atualiza_status.run_if(on_event::<e_envia_status>()))
         .add_systems(
             Update,
-            (atualiza_slot, atualiza_status, atualiza_jogador)
+            (
+                //esta funcionando como um fim de fase
+                adiciona_level,
+                atualiza_slot,
+                atualiza_status,
+                atualiza_jogador,
+            )
                 .chain()
                 .run_if(on_event::<e_atualiza_jogador>()),
         )
         .add_systems(Update, despawna.after(atualiza_jogador))
-        .add_systems(Update, fim_dragging.before(atualiza_jogador))
+        .add_systems(Update, fim_dragging)
         .add_systems(Startup, setup)
         .run();
 }
@@ -183,7 +189,7 @@ fn atualiza_jogador(
         //caso, os dois batalham e o inimigo morre em seguida
         for (_, transform_slot, mut slot) in q_slots.iter_mut() {
             if slot.level == jogador.jogador.level {
-                if slot.posicao == jogador.jogador.posicao && slot.carta.id != 777 {
+                if slot.posicao == jogador.jogador.posicao {
                     if slot.carta.tipo == TipoCarta::Inimigo {
                         let mut transform_offset = transform_slot.clone();
                         transform_offset.translation.y += 180.;
@@ -383,6 +389,7 @@ enum TipoCarta {
     Item,
     Vazio,
     Escadas,
+    Nada,
 }
 
 impl Default for Carta {
@@ -447,6 +454,7 @@ impl Deck {
                 TipoCarta::Equipamento => cartas_equipamento.push(carta.clone()),
                 TipoCarta::Artefato => cartas_artefato.push(carta.clone()),
                 TipoCarta::Item => cartas_item.push(carta.clone()),
+                _ => cartas_item.push(carta.clone()),
             }
         }
 
@@ -680,6 +688,8 @@ fn atualiza_slot(
             TipoCarta::Equipamento => Srgba::new(0.5, 0.5, 1.0, 1.0).into(),
             TipoCarta::Artefato => Srgba::new(1.0, 0.3, 1.0, 1.0).into(),
             TipoCarta::Item => Srgba::new(0.8, 0.3, 0.5, 1.0).into(),
+
+            _ => Srgba::new(0.8, 0.3, 0.5, 1.0).into(),
         };
 
         // let carta_img: Handle<Image> = asset_server.load("carta.png");
@@ -692,6 +702,8 @@ fn atualiza_slot(
             TipoCarta::Equipamento => asset_server.load("carta-verde.png"),
             TipoCarta::Artefato => asset_server.load("carta-amarela.png"),
             TipoCarta::Item => asset_server.load("carta-amarela.png"),
+
+            _ => asset_server.load("carta-amarela.png"),
         };
 
         let carta_id = commands
@@ -991,7 +1003,6 @@ fn fim_dragging(
                 //cria-se primeiro os slots e marca eles para Atualizar, depois cria-se as cartas
                 let mut deck = jogador.deck.clone();
 
-                let slot_img = asset_server.load("cemiterio.png");
                 deck.level += 1;
                 //muda a posicao do jogador no eixo horizontal
                 jogador.jogador.posicao = slot.posicao;
@@ -1077,53 +1088,15 @@ fn fim_dragging(
                             jogador.jogador.ouro += valor;
                         }
                     }
+                    _ => {}
                 }
-                if slot.carta.id != 777 {
-                    commands.entity(slot.entidade_carta).insert(Despawnar);
-                    slot.carta = Carta::default();
-                    slot.entidade_carta = Entity::PLACEHOLDER;
-                }
+                //if slot.carta.id != 777 {
+                commands.entity(slot.entidade_carta).insert(Despawnar);
+                //  slot.carta = Carta::default();
+                // slot.entidade_carta = Entity::PLACEHOLDER;
+                //}
                 //cria mais 3 slots
-                for i in 1..4 {
-                    slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
-                        id: 0,
-                        nome: "Carta Vazia".to_string(),
-                        descricao: "O deck está vazio!".to_string(),
-                        ataque: Some(0),
-                        defesa: Some(0),
-                        vida: Some(0),
-                        cura: Some(0),
-                        bonus_ataque: Some(0),
-                        bonus_defesa: Some(0),
-                        bonus_vida: Some(0),
-
-                        tipo: TipoCarta::Vazio,
-                        valor: Some(0),
-                    });
-                    slot.set_level(deck.level);
-                    slot.posicao = i - 1; //esta começando do 1
-                    commands.spawn((
-                        PickableBundle::default(),
-                        slot.clone(),
-                        Atualizar,
-                        SpriteBundle {
-                            sprite: Sprite {
-                                color: Srgba::new(0.5, 0.5, 0.5, 0.5).into(),
-                                ..Default::default()
-                            },
-                            //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
-                            texture: slot_img.clone(),
-                            transform: Transform::from_xyz(
-                                (190. * i as f32) - 300.,
-                                (255. * deck.level as f32) + 70.,
-                                0.,
-                            )
-                            .with_scale(Vec3::splat(1.0)),
-
-                            ..Default::default()
-                        },
-                    ));
-                }
+                //TODO: tirar essa parte daqui
 
                 ancora_carta.x = transform_slot.translation.x;
                 ancora_carta.y = transform_slot.translation.y;
@@ -1181,6 +1154,58 @@ fn fim_dragging(
 
         ew_atualiza_slot.send(e_atualiza_slot);
     }
+}
+
+fn adiciona_level(
+    mut config: ResMut<config>,
+    mut commands: Commands,
+    mut asset_server: Res<AssetServer>,
+) {
+    let slot_img = asset_server.load("cemiterio.png");
+    let mut deck = config.deck.clone();
+    let mut slot = Slot::default();
+    for i in 1..4 {
+        slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
+            id: 0,
+            nome: "Carta Vazia".to_string(),
+            descricao: "O deck está vazio!".to_string(),
+            ataque: Some(0),
+            defesa: Some(0),
+            vida: Some(0),
+            cura: Some(0),
+            bonus_ataque: Some(0),
+            bonus_defesa: Some(0),
+            bonus_vida: Some(0),
+
+            tipo: TipoCarta::Vazio,
+            valor: Some(0),
+        });
+        slot.set_level(deck.level);
+        slot.posicao = i - 1; //esta começando do 1
+        commands.spawn((
+            PickableBundle::default(),
+            slot.clone(),
+            Atualizar,
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Srgba::new(0.5, 0.5, 0.5, 0.5).into(),
+                    ..Default::default()
+                },
+                //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
+                texture: slot_img.clone(),
+                transform: Transform::from_xyz(
+                    (190. * i as f32) - 300.,
+                    (255. * deck.level as f32) + 70.,
+                    0.,
+                )
+                .with_scale(Vec3::splat(1.0)),
+
+                ..Default::default()
+            },
+        ));
+    }
+
+    config.deck = deck;
 }
 
 #[derive(Event)]
@@ -1282,7 +1307,7 @@ fn montar_jogo(
         }
     }
 
-    deck.level = 2;
+    deck.level = 3;
 
     commands.spawn((
         //PickableBundle::default(),

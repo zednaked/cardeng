@@ -405,7 +405,7 @@ impl Default for Carta {
             bonus_ataque: Some(0),
             bonus_defesa: Some(0),
             bonus_vida: Some(0),
-            tipo: TipoCarta::Vazio,
+            tipo: TipoCarta::Nada,
             valor: Some(0),
         }
     }
@@ -1090,8 +1090,10 @@ fn fim_dragging(
                     }
                     _ => {}
                 }
-                //if slot.carta.id != 777 {
-                commands.entity(slot.entidade_carta).insert(Despawnar);
+                //if slot.carta.id != 777
+                if slot.carta.tipo != TipoCarta::Nada {
+                    commands.entity(slot.entidade_carta).insert(Despawnar);
+                }
                 //  slot.carta = Carta::default();
                 // slot.entidade_carta = Entity::PLACEHOLDER;
                 //}

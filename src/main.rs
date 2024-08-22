@@ -68,11 +68,13 @@ fn main() {
                 atualiza_slot,
                 atualiza_status,
                 atualiza_jogador,
+                verifica_iniciativa,
+                //  despawna,
             )
                 .chain()
                 .run_if(on_event::<e_atualiza_jogador>()),
         )
-        .add_systems(Update, despawna.after(atualiza_jogador))
+        .add_systems(Update, despawna.after(verifica_iniciativa))
         .add_systems(Update, fim_dragging)
         .add_systems(Startup, setup)
         .run();
@@ -187,39 +189,51 @@ fn atualiza_jogador(
 
         //verifica se a carta no level a frente, na mesma posiçao que o heroi for um inimigo, nesse
         //caso, os dois batalham e o inimigo morre em seguida
-        for (_, transform_slot, mut slot) in q_slots.iter_mut() {
-            if slot.level == jogador.jogador.level {
-                if slot.posicao == jogador.jogador.posicao {
-                    if slot.carta.tipo == TipoCarta::Inimigo {
-                        let mut transform_offset = transform_slot.clone();
-                        transform_offset.translation.y += 180.;
-                        transform_offset.translation.z = 21.;
-                        let tween_inimigo_ataca = Tween::new(
-                            EaseFunction::ElasticInOut,
-                            Duration::from_millis(1800),
-                            TransformPositionLens {
-                                start: transform_offset.translation,
+    }
+}
 
-                                end: Vec3::new(
-                                    transform_slot.translation.x,
-                                    transform_slot.translation.y - 50.,
-                                    21.,
-                                ),
-                            },
-                        )
-                        .with_completed_event(666);
-                        info!("{:?}", slot.entidade_carta);
+fn verifica_iniciativa(
+    mut commands: Commands,
+    mut events: EventReader<e_atualiza_jogador>,
+    mut jogador: ResMut<config>,
 
-                        jogador
-                            .jogador
-                            .tomar_dano(slot.carta.ataque.unwrap_or_default());
-                        commands
-                            .entity(slot.entidade_carta)
-                            .insert(Animator::new(tween_inimigo_ataca));
-                        slot.carta = Carta::default();
-                        slot.entidade_carta = Entity::PLACEHOLDER;
-                        info!("inimigo iniciativa!");
-                    }
+    mut q_slots: Query<
+        (Entity, &Transform, &mut Slot),
+        (Without<Atualizar>, Without<UIEfeitosInventario>),
+    >,
+) {
+    for (_, transform_slot, mut slot) in q_slots.iter_mut() {
+        if slot.level == jogador.jogador.level {
+            if slot.posicao == jogador.jogador.posicao {
+                if slot.carta.tipo == TipoCarta::Inimigo {
+                    let mut transform_offset = transform_slot.clone();
+                    transform_offset.translation.y += 180.;
+                    transform_offset.translation.z = 21.;
+                    let tween_inimigo_ataca = Tween::new(
+                        EaseFunction::ElasticInOut,
+                        Duration::from_millis(1800),
+                        TransformPositionLens {
+                            start: transform_offset.translation,
+
+                            end: Vec3::new(
+                                transform_slot.translation.x,
+                                transform_slot.translation.y - 50.,
+                                21.,
+                            ),
+                        },
+                    )
+                    .with_completed_event(666);
+                    info!("{:?}", slot.entidade_carta);
+
+                    jogador
+                        .jogador
+                        .tomar_dano(slot.carta.ataque.unwrap_or_default());
+                    commands
+                        .entity(slot.entidade_carta)
+                        .insert(Animator::new(tween_inimigo_ataca));
+                    slot.carta = Carta::default();
+                    slot.entidade_carta = Entity::PLACEHOLDER;
+                    info!("inimigo iniciativa!");
                 }
             }
         }

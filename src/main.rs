@@ -66,18 +66,28 @@ fn main() {
                 .chain()
                 .run_if(on_event::<e_atualiza_jogador>()),
         )
-        .add_systems(Update, despawna)
-        .add_systems(Update, fim_dragging.after(atualiza_jogador))
+        .add_systems(Update, despawna.after(atualiza_jogador))
+        .add_systems(Update, fim_dragging.before(atualiza_jogador))
         .add_systems(Startup, setup)
         .run();
 }
 
-fn despawna(mut reader: EventReader<TweenCompleted>, mut commands: Commands) {
+#[derive(Debug, Component, Clone)]
+struct Despawnar;
+
+fn despawna(
+    mut reader: EventReader<TweenCompleted>,
+    mut q_despawnar: Query<Entity, With<Despawnar>>,
+    mut commands: Commands,
+) {
     for ev in reader.read() {
         if ev.user_data == 666 {
             commands.entity(ev.entity).despawn_recursive();
             //            info!("Tween de ataque do inimigo completado!");
         }
+    }
+    for e in q_despawnar.iter() {
+        commands.entity(e).despawn_recursive();
     }
 }
 
@@ -173,7 +183,7 @@ fn atualiza_jogador(
         //caso, os dois batalham e o inimigo morre em seguida
         for (_, transform_slot, mut slot) in q_slots.iter_mut() {
             if slot.level == jogador.jogador.level {
-                if slot.posicao == jogador.jogador.posicao {
+                if slot.posicao == jogador.jogador.posicao && slot.carta.id != 777 {
                     if slot.carta.tipo == TipoCarta::Inimigo {
                         let mut transform_offset = transform_slot.clone();
                         transform_offset.translation.y += 180.;
@@ -193,6 +203,7 @@ fn atualiza_jogador(
                         )
                         .with_completed_event(666);
                         info!("{:?}", slot.entidade_carta);
+
                         jogador
                             .jogador
                             .tomar_dano(slot.carta.ataque.unwrap_or_default());
@@ -950,7 +961,7 @@ fn fim_dragging(
                         //     commands.entity(entity_carta).despawn_recursive();
                         if entity_carta != entity {
                             if slot.entidade_carta == entity_carta {
-                                if carta.nome == "Escadas" {
+                                if slot.carta.nome == "Escadas" {
                                     //                                    commands.entity(entity_carta).despawn_recursive();
                                     ew_envia_status.send(e_envia_status(
                                         "Voce chegou até as escadas para baixo...".to_string(),
@@ -959,12 +970,15 @@ fn fim_dragging(
 
                                     return;
                                 }
-                                if carta.nome == "O Vazio" {
+                                if slot.carta.nome == "O Vazio" {
                                     //                                  commands.entity(entity_carta).despawn_recursive();
                                     ew_envia_status.send(e_envia_status(
                                         "Voce caiu no vazio... GAME OVER".to_string(),
                                     ));
                                     ew_resetar_jogo.send(e_resetar_jogo);
+                                    return;
+                                }
+                                if carta.id == 777 {
                                     return;
                                 }
                             }
@@ -982,6 +996,7 @@ fn fim_dragging(
                 //muda a posicao do jogador no eixo horizontal
                 jogador.jogador.posicao = slot.posicao;
                 info!("{:?}", slot.carta);
+
                 match slot.carta.tipo {
                     TipoCarta::Escadas => {
                         ew_envia_status
@@ -1063,7 +1078,11 @@ fn fim_dragging(
                         }
                     }
                 }
-
+                if slot.carta.id != 777 {
+                    commands.entity(slot.entidade_carta).insert(Despawnar);
+                    slot.carta = Carta::default();
+                    slot.entidade_carta = Entity::PLACEHOLDER;
+                }
                 //cria mais 3 slots
                 for i in 1..4 {
                     slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
@@ -1134,11 +1153,10 @@ fn fim_dragging(
                 }
 
                 //
-                //TODO:: ARRUMAR ISSO
-                commands.entity(slot.entidade_carta).despawn_recursive();
+                //TODO:: ARRUMAR ISSO//
+                // commands.entity(slot.en/tidade_carta).despawn_recursive();
+
                 // jogador.jogador.level += 1;
-                slot.carta = Carta::default();
-                slot.entidade_carta = Entity::PLACEHOLDER;
             }
         }
         ew_atualiza_jogador.send(e_atualiza_jogador {

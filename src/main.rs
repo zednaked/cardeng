@@ -322,7 +322,7 @@ struct e_atualiza_jogador {
     valor: i32,
 }
 
-#[derive(Resource, Clone, Copy)]
+#[derive(Resource)]
 struct config {
     pub deck: Deck,
     pub jogador: jogador,
@@ -1305,7 +1305,7 @@ fn montar_jogo(
     //    adiciona_level(res_deck2, commands, asset_server);
     // }
 
-    deck.level = 3;
+    deck.level = 0;
 
     commands.spawn((
         //PickableBundle::default(),

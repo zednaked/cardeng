@@ -322,7 +322,7 @@ struct e_atualiza_jogador {
     valor: i32,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone, Copy)]
 struct config {
     pub deck: Deck,
     pub jogador: jogador,
@@ -983,6 +983,7 @@ fn fim_dragging(
                 }
 
                 //desespawna a carta de baixo
+                //verifica se a carta eh escada ou vazio
                 for (entity_carta, carta) in query_cartas.iter() {
                     if carta.id == slot.carta.id {
                         //     commands.entity(entity_carta).despawn_recursive();
@@ -1005,6 +1006,7 @@ fn fim_dragging(
                                     ew_resetar_jogo.send(e_resetar_jogo);
                                     return;
                                 }
+                                //caso caia numa carta desespawnada
                                 if carta.id == 777 {
                                     return;
                                 }
@@ -1195,21 +1197,7 @@ fn adiciona_level(
     let mut deck = config.deck.clone();
     let mut slot = Slot::default();
     for i in 1..4 {
-        slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
-            id: 0,
-            nome: "Carta Vazia".to_string(),
-            descricao: "O deck está vazio!".to_string(),
-            ataque: Some(0),
-            defesa: Some(0),
-            vida: Some(0),
-            cura: Some(0),
-            bonus_ataque: Some(0),
-            bonus_defesa: Some(0),
-            bonus_vida: Some(0),
-
-            tipo: TipoCarta::Vazio,
-            valor: Some(0),
-        });
+        slot.carta = deck.cartas.pop().unwrap_or_default();
         slot.set_level(deck.level);
         slot.posicao = i - 1; //esta começando do 1
         commands.spawn((
@@ -1234,6 +1222,27 @@ fn adiciona_level(
             },
         ));
     }
+    //cria um label com o level atual da sala
+    commands.spawn((Text2dBundle {
+        text: Text {
+            sections: vec![TextSection {
+                value: format!("Level - {}", deck.level),
+                style: TextStyle {
+                    //              font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 38.0,
+                    color: Color::WHITE,
+                    ..Default::default()
+                },
+            }],
+            ..Default::default()
+        },
+        transform: Transform::from_xyz(
+            (190. * 5. as f32) - 300.,
+            (255. * deck.level as f32) + 70.,
+            1.,
+        ),
+        ..Default::default()
+    },));
 
     config.deck = deck;
 }
@@ -1291,51 +1300,10 @@ fn montar_jogo(
         },
     ));
     let mut slot = Slot::default();
-    for ii in 0..3 {
-        for i in 1..4 {
-            slot.carta = deck.cartas.pop().unwrap_or_else(|| Carta {
-                id: 0,
-                nome: "Carta Vazia".to_string(),
-                descricao: "O deck está vazio!".to_string(),
-                ataque: Some(0),
-                defesa: Some(0),
-                vida: Some(0),
-                cura: Some(0),
-                bonus_ataque: Some(0),
-                bonus_defesa: Some(0),
-                bonus_vida: Some(0),
-
-                tipo: TipoCarta::Vazio,
-                valor: Some(0),
-            });
-            slot.set_level(ii);
-            slot.posicao = i - 1; //esta começando do 1
-                                  //tween que faz as cartas irem da poscao do deck ate a posicao do slot que ela ficara
-                                  //no tabuleiro
-
-            commands.spawn((
-                //       PickableBundle::default(),
-                slot.clone(),
-                Atualizar,
-                SpriteBundle {
-                    sprite: Sprite {
-                        color: Srgba::new(0.5, 0.5, 0.5, 0.5).into(),
-                        ..Default::default()
-                    },
-                    //  sprite: Sprite::new(Vec2::new(100.0, 100.0)),
-                    texture: slot_img.clone(),
-                    transform: Transform::from_xyz(
-                        (190. * i as f32) - 300.,
-                        (255. * ii as f32) + 70.,
-                        0.,
-                    )
-                    .with_scale(Vec3::splat(1.0)),
-
-                    ..Default::default()
-                },
-            ));
-        }
-    }
+    // for ii in 0..3 {
+    //     let mut res_deck2 = res_deck.clone();
+    //    adiciona_level(res_deck2, commands, asset_server);
+    // }
 
     deck.level = 3;
 

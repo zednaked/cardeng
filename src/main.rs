@@ -69,6 +69,7 @@ fn main() {
                 atualiza_status,
                 atualiza_jogador,
                 verifica_iniciativa,
+                sobe_camera,
                 //  despawna,
             )
                 .chain()
@@ -1118,36 +1119,17 @@ fn fim_dragging(
                 ancora_carta.y = transform_slot.translation.y;
                 jogador.deck = deck.clone();
                 commands.entity(entity_slot).insert(slot.clone());
-                for (entidade_camera, mut transform, _, mut op) in q_camera.iter_mut() {
-                    let tween_camera_sobe = Tween::new(
-                        EaseFunction::QuadraticInOut,
-                        Duration::from_millis(500),
-                        TransformPositionLens {
-                            start: transform.translation,
-                            end: Vec3::new(
-                                transform.translation.x,
-                                transform.translation.y + 250.,
-                                0.,
-                            ),
-                        },
-                    );
-
-                    //transform.translation.y += 250.;
-                    commands
-                        .entity(entidade_camera)
-                        .insert(Animator::new(tween_camera_sobe));
-
-                    //    op.scale = 1.5
-                    //    ;
-                }
-
-                //
-                //TODO:: ARRUMAR ISSO//
-                // commands.entity(slot.en/tidade_carta).despawn_recursive();
-
-                // jogador.jogador.level += 1;
+                //    op.scale = 1.5
+                //    ;
             }
+
+            //
+            //TODO:: ARRUMAR ISSO//
+            // commands.entity(slot.en/tidade_carta).despawn_recursive();
+
+            // jogador.jogador.level += 1;
         }
+
         ew_atualiza_jogador.send(e_atualiza_jogador {
             tipo: TipoAtualizacao::atualiza,
             valor: 0,
@@ -1169,6 +1151,38 @@ fn fim_dragging(
             .insert(Animator::new(tween_carta_retorna_ancora));
 
         ew_atualiza_slot.send(e_atualiza_slot);
+    }
+}
+
+fn sobe_camera(
+    mut commands: Commands,
+    mut q_camera: Query<
+        (
+            Entity,
+            &mut Transform,
+            &mut Camera2d,
+            &mut OrthographicProjection,
+        ),
+        (Without<Carta>, With<Camera2d>),
+    >,
+) {
+    for (entidade_camera, mut transform, _, mut op) in q_camera.iter_mut() {
+        let tween_camera_sobe = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_millis(500),
+            TransformPositionLens {
+                start: transform.translation,
+                end: Vec3::new(transform.translation.x, transform.translation.y + 250., 0.),
+            },
+        );
+
+        //transform.translation.y += 250.;
+        commands
+            .entity(entidade_camera)
+            .insert(Animator::new(tween_camera_sobe));
+
+        //    op.scale = 1.5
+        //    ;
     }
 }
 

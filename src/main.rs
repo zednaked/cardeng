@@ -10,7 +10,7 @@
 #![allow(unused_imports)]
 
 use bevy::{
-    ecs::{
+    ecs::        query::{QueryData, QueryFilter},{
         entity,
         query::{QueryData, QueryFilter},
         system::RunSystemOnce,
@@ -50,14 +50,12 @@ fn main() {
         .add_event::<e_atualiza_slot>()
         .add_event::<e_envia_status>()
         .add_plugins(DefaultPickingPlugins)
-        //        .add_systems(Update, montar_jogo.run_if(on_event::<e_monta_jogo>()))
         .add_systems(
             Update,
             (resetar_jogo, montar_jogo, atualiza_slot)
                 .chain()
                 .run_if(on_event::<e_resetar_jogo>()),
         )
-        //        .add_systems(Update, spawna_carta.run_if(on_event::<e_spawnar_carta>()))
         .add_systems(Update, atualiza_slot.run_if(on_event::<e_atualiza_slot>()))
         .add_systems(Update, atualiza_status.run_if(on_event::<e_envia_status>()))
         .add_systems(
@@ -915,7 +913,6 @@ fn fim_dragging(
             &mut Transform,
             &ProcessaFimDragging,
             &mut Ancora,
-            //            &Slot,
         ),
         (Without<Slot>, With<Carta>),
     >,
@@ -990,7 +987,6 @@ fn fim_dragging(
                         if entity_carta != entity {
                             if slot.entidade_carta == entity_carta {
                                 if slot.carta.nome == "Escadas" {
-                                    //                                    commands.entity(entity_carta).despawn_recursive();
                                     ew_envia_status.send(e_envia_status(
                                         "Voce chegou até as escadas para baixo...".to_string(),
                                     ));
@@ -999,7 +995,6 @@ fn fim_dragging(
                                     return;
                                 }
                                 if slot.carta.nome == "O Vazio" {
-                                    //                                  commands.entity(entity_carta).despawn_recursive();
                                     ew_envia_status.send(e_envia_status(
                                         "Voce caiu no vazio... GAME OVER".to_string(),
                                     ));

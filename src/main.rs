@@ -10,13 +10,13 @@
 #![allow(unused_imports)]
 
 use bevy::{
-    prelude::*,
-    {
+    ecs::{
         entity,
         query::{QueryData, QueryFilter},
         system::RunSystemOnce,
         world,
     },
+    prelude::*,
 };
 use bevy_mod_picking::prelude::*;
 use lens::TransformPositionLens;

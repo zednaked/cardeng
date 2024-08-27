@@ -10,13 +10,13 @@
 #![allow(unused_imports)]
 
 use bevy::{
-    ecs::        query::{QueryData, QueryFilter},{
+    prelude::*,
+    {
         entity,
         query::{QueryData, QueryFilter},
         system::RunSystemOnce,
         world,
     },
-    prelude::*,
 };
 use bevy_mod_picking::prelude::*;
 use lens::TransformPositionLens;
@@ -908,12 +908,7 @@ struct Ancora {
 fn fim_dragging(
     mut commands: Commands,
     mut query: Query<
-        (
-            Entity,
-            &mut Transform,
-            &ProcessaFimDragging,
-            &mut Ancora,
-        ),
+        (Entity, &mut Transform, &ProcessaFimDragging, &mut Ancora),
         (Without<Slot>, With<Carta>),
     >,
     mut q_texto_status: Query<Entity, With<Status>>,
